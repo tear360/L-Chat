@@ -1,36 +1,26 @@
 {
   "project_info": {
-    "project_number": "583083352138",
-    "project_id": "snapchat-cd90a",
-    "storage_bucket": "snapchat-cd90a.appspot.com"
+    "project_number": "665318943970",
+    "project_id": "l-chat-a7c10",
+    "storage_bucket": "l-chat-a7c10.firebasestorage.app"
   },
   "client": [
     {
       "client_info": {
-        "mobilesdk_app_id": "1:583083352138:android:6ed0a8e03819fb046646b3",
+        "mobilesdk_app_id": "1:665318943970:android:cdbd11ad941d509f9142bb",
         "android_client_info": {
           "package_name": "com.lchat.app"
         }
       },
-      "oauth_client": [
-        {
-          "client_id": "583083352138-q1keekm90moeinos6g5jeu4ig0fuoonf.apps.googleusercontent.com",
-          "client_type": 3
-        }
-      ],
+      "oauth_client": [],
       "api_key": [
         {
-          "current_key": "AIzaSyAW2FnrhCfxkwutIHqUibWksMjpYis6ako"
+          "current_key": "AIzaSyABIVVZIoXkJHYAfMgFV_1_9cZiXZBq0uM"
         }
       ],
       "services": {
         "appinvite_service": {
-          "other_platform_oauth_client": [
-            {
-              "client_id": "583083352138-q1keekm90moeinos6g5jeu4ig0fuoonf.apps.googleusercontent.com",
-              "client_type": 3
-            }
-          ]
+          "other_platform_oauth_client": []
         }
       }
     }
