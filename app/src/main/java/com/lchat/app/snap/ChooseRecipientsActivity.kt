@@ -2,7 +2,6 @@ package com.lchat.app.snap
 
 import android.app.Activity
 import android.content.Intent
-import android.net.Uri
 import android.os.Bundle
 import android.text.Editable
 import android.text.TextWatcher
@@ -15,12 +14,11 @@ import com.google.firebase.database.ChildEventListener
 import com.google.firebase.database.DataSnapshot
 import com.google.firebase.database.DatabaseError
 import com.google.firebase.database.FirebaseDatabase
-import com.google.firebase.storage.FirebaseStorage
 import com.lchat.app.adapter.UsersAdapter
 import com.lchat.app.databinding.ActivityChooseRecipientsBinding
 import com.lchat.app.model.User
+import com.lchat.app.util.ImageStore
 import java.io.File
-import java.util.UUID
 
 class ChooseRecipientsActivity : AppCompatActivity() {
 
@@ -83,7 +81,7 @@ class ChooseRecipientsActivity : AppCompatActivity() {
                     uid = uid,
                     username = snapshot.child("username").value as? String ?: "",
                     email = snapshot.child("email").value as? String ?: "",
-                    photoUrl = snapshot.child("photoUrl").value as? String ?: ""
+                    photoData = snapshot.child("photoData").value as? String ?: ""
                 )
                 allUsers.removeAll { it.uid == uid }
                 allUsers.add(user)
@@ -156,20 +154,27 @@ class ChooseRecipientsActivity : AppCompatActivity() {
     private fun doSend(recipientUids: List<String>, path: String) {
         val caption = intent.getStringExtra(EXTRA_CAPTION) ?: ""
         val fromUid = FirebaseAuth.getInstance().currentUser!!.uid
-        val imageName = "${UUID.randomUUID()}.jpg"
-        val ref = FirebaseStorage.getInstance().getReference("images").child(imageName)
 
-        ref.putFile(Uri.fromFile(File(path)))
-            .continueWithTask { task ->
-                if (!task.isSuccessful) throw task.exception ?: Exception("Upload failed")
-                ref.downloadUrl
+        Thread {
+            val imageData = try {
+                ImageStore.encodeFile(File(path))
+            } catch (e: Exception) {
+                null
             }
-            .addOnSuccessListener { uri ->
+
+            runOnUiThread {
+                if (imageData == null) {
+                    sending = false
+                    binding.sendProgress.visibility = View.GONE
+                    binding.sendFab.visibility = View.VISIBLE
+                    Toast.makeText(this, "Could not process the image", Toast.LENGTH_SHORT).show()
+                    return@runOnUiThread
+                }
+
                 val snap = mapOf(
                     "fromUid" to fromUid,
                     "fromName" to myName,
-                    "imageUrl" to uri.toString(),
-                    "imageName" to imageName,
+                    "imageData" to imageData,
                     "caption" to caption,
                     "createdAt" to System.currentTimeMillis()
                 )
@@ -181,11 +186,6 @@ class ChooseRecipientsActivity : AppCompatActivity() {
                 setResult(Activity.RESULT_OK)
                 finish()
             }
-            .addOnFailureListener {
-                sending = false
-                binding.sendProgress.visibility = View.GONE
-                binding.sendFab.visibility = View.VISIBLE
-                Toast.makeText(this, "Upload failed: ${it.message}", Toast.LENGTH_SHORT).show()
-            }
+        }.start()
     }
 }

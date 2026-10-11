@@ -143,17 +143,28 @@ class StoriesFragment : Fragment() {
             id = snapshot.key ?: return,
             fromUid = snapshot.child("fromUid").value as? String ?: "",
             fromName = snapshot.child("fromName").value as? String ?: "",
-            imageUrl = snapshot.child("imageUrl").value as? String ?: "",
+            imageData = snapshot.child("imageData").value as? String ?: "",
             caption = snapshot.child("caption").value as? String ?: "",
             createdAt = snapshot.child("createdAt").getValue(Long::class.java) ?: 0L
         )
-        if (item.imageUrl.isNotEmpty()) {
+        if (item.imageData.isNotEmpty()) {
             stories.add(item)
+        }
+    }
+
+    private fun cleanupExpiredOwnStories() {
+        val myUid = FirebaseAuth.getInstance().currentUser?.uid ?: return
+        val cutoff = System.currentTimeMillis() - 24L * 60 * 60 * 1000
+        val ref = FirebaseDatabase.getInstance().getReference("stories")
+        for (story in stories.filter { it.fromUid == myUid && it.createdAt < cutoff }) {
+            ref.child(story.id).removeValue()
         }
     }
 
     private fun refresh() {
         if (_binding == null) return
+
+        cleanupExpiredOwnStories()
 
         val cutoff = System.currentTimeMillis() - 24L * 60 * 60 * 1000
         val seen = seenIds()

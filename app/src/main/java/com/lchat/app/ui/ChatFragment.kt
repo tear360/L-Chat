@@ -121,8 +121,7 @@ class ChatFragment : Fragment() {
         key = key,
         fromUid = snapshot.child("fromUid").value as? String ?: "",
         fromName = snapshot.child("fromName").value as? String ?: "",
-        imageUrl = snapshot.child("imageUrl").value as? String ?: "",
-        imageName = snapshot.child("imageName").value as? String ?: "",
+        imageData = snapshot.child("imageData").value as? String ?: "",
         caption = snapshot.child("caption").value as? String ?: "",
         createdAt = snapshot.child("createdAt").getValue(Long::class.java) ?: 0L
     )
@@ -157,7 +156,7 @@ class ChatFragment : Fragment() {
     private fun openSnap(snap: SnapItem) {
         val intent = Intent(requireContext(), ViewSnapActivity::class.java)
         intent.putExtra("snapKey", snap.key)
-        intent.putExtra("imageUrl", snap.imageUrl)
+        intent.putExtra("imageData", snap.imageData)
         intent.putExtra("caption", snap.caption)
         intent.putExtra("fromName", snap.fromName)
         startActivity(intent)

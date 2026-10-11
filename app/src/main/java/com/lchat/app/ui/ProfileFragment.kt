@@ -10,14 +10,13 @@ import android.widget.Toast
 import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.fragment.app.Fragment
-import coil.load
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.database.FirebaseDatabase
-import com.google.firebase.storage.FirebaseStorage
 import com.lchat.app.auth.AuthActivity
 import com.lchat.app.databinding.FragmentProfileBinding
 import com.lchat.app.util.AppUtils
+import com.lchat.app.util.ImageStore
 
 class ProfileFragment : Fragment() {
 
@@ -66,7 +65,7 @@ class ProfileFragment : Fragment() {
                 if (_binding == null) return@addOnSuccessListener
                 myUsername = snapshot.child("username").value as? String ?: ""
                 val email = snapshot.child("email").value as? String ?: ""
-                val photoUrl = snapshot.child("photoUrl").value as? String ?: ""
+                val photoData = snapshot.child("photoData").value as? String ?: ""
 
                 binding.profileUsername.text = myUsername.ifEmpty { "L Chat user" }
                 binding.profileEmail.text = email
@@ -77,16 +76,12 @@ class ProfileFragment : Fragment() {
                 binding.profileInitials.text = AppUtils.initials(myUsername.ifEmpty { email })
                 binding.profileInitials.setTextColor(AppUtils.initialsTextColor(color))
 
-                if (photoUrl.isNotEmpty()) {
-                    binding.profilePhoto.load(photoUrl) {
-                        listener(
-                            onSuccess = { _, _ ->
-                                if (_binding != null) {
-                                    binding.profilePhoto.visibility = View.VISIBLE
-                                    binding.profileInitials.visibility = View.GONE
-                                }
-                            }
-                        )
+                if (photoData.isNotEmpty()) {
+                    val bitmap = ImageStore.decode(photoData)
+                    if (bitmap != null && _binding != null) {
+                        binding.profilePhoto.setImageBitmap(bitmap)
+                        binding.profilePhoto.visibility = View.VISIBLE
+                        binding.profileInitials.visibility = View.GONE
                     }
                 }
             }
@@ -127,38 +122,45 @@ class ProfileFragment : Fragment() {
     }
 
     private fun uploadProfilePhoto(uri: android.net.Uri) {
-        Toast.makeText(requireContext(), "Uploading photo...", Toast.LENGTH_SHORT).show()
-        val ref = FirebaseStorage.getInstance().getReference("profile").child("$myUid.jpg")
-        ref.putFile(uri)
-            .continueWithTask { task ->
-                if (!task.isSuccessful) throw task.exception ?: Exception("Upload failed")
-                ref.downloadUrl
+        Toast.makeText(requireContext(), "Saving photo...", Toast.LENGTH_SHORT).show()
+
+        Thread {
+            val photoData = try {
+                ImageStore.encodeUri(requireContext().applicationContext, uri, 512, 80)
+            } catch (e: Exception) {
+                null
             }
-            .addOnSuccessListener { downloadUri ->
-                FirebaseDatabase.getInstance().getReference("users").child(myUid)
-                    .child("photoUrl").setValue(downloadUri.toString())
-                    .addOnSuccessListener {
-                        if (_binding == null) return@addOnSuccessListener
-                        binding.profilePhoto.load(downloadUri.toString()) {
-                            listener(
-                                onSuccess = { _, _ ->
-                                    if (_binding != null) {
-                                        binding.profilePhoto.visibility = View.VISIBLE
-                                        binding.profileInitials.visibility = View.GONE
-                                    }
-                                }
-                            )
-                        }
-                        Toast.makeText(requireContext(), "Photo updated", Toast.LENGTH_SHORT).show()
+
+            if (photoData == null) {
+                activity?.runOnUiThread {
+                    if (_binding != null) {
+                        Toast.makeText(requireContext(), "Photo failed", Toast.LENGTH_SHORT).show()
                     }
+                }
+                return@Thread
             }
-            .addOnFailureListener {
-                Toast.makeText(
-                    requireContext(),
-                    "Upload failed: ${it.message}",
-                    Toast.LENGTH_SHORT
-                ).show()
-            }
+
+            FirebaseDatabase.getInstance().getReference("users").child(myUid)
+                .child("photoData").setValue(photoData)
+                .addOnSuccessListener {
+                    if (_binding == null) return@addOnSuccessListener
+                    val bitmap = ImageStore.decode(photoData)
+                    if (bitmap != null) {
+                        binding.profilePhoto.setImageBitmap(bitmap)
+                        binding.profilePhoto.visibility = View.VISIBLE
+                        binding.profileInitials.visibility = View.GONE
+                    }
+                    Toast.makeText(requireContext(), "Photo updated", Toast.LENGTH_SHORT).show()
+                }
+                .addOnFailureListener {
+                    if (_binding == null) return@addOnFailureListener
+                    Toast.makeText(
+                        requireContext(),
+                        "Photo failed: ${it.message}",
+                        Toast.LENGTH_SHORT
+                    ).show()
+                }
+        }.start()
     }
 
     private fun confirmLogout() {

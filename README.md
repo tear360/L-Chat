@@ -23,8 +23,8 @@ même concept, mais code, architecture et UI entièrement refaits.
 | Build | AGP 8.13.2, Gradle 8.14.4 |
 | UI | Material 3, ViewBinding, RecyclerView |
 | Caméra | CameraX 1.6 |
-| Images | Coil 2.7 |
-| Backend | Firebase BOM 34 (Auth, Realtime Database, Storage) |
+| Images | Coil 2.7 (aperçus), encodage JPEG/base64 maison |
+| Backend | Firebase BOM 34 (Auth, Realtime Database) |
 | SDK | minSdk 26, targetSdk 35, compileSdk 36 |
 
 ## Mise en route
@@ -43,11 +43,13 @@ cd L-Chat
 3. Activez dans la console :
    - **Authentication** → méthode *Email/Mot de passe*
    - **Realtime Database**
-   - **Storage**
 4. Téléchargez votre `google-services.json` et **remplacez-en** le fichier `app/google-services.json`
-   (celui fourni est un placeholder : le build passe, mais l'authentification échouera à l'exécution)
-5. Collez les règles de sécurité depuis `database.rules.json` et `storage.rules`
-   (ou `firebase deploy --only database,storage` avec le CLI Firebase)
+5. Collez les règles de sécurité depuis `database.rules.json`
+   (ou `firebase deploy --only database` avec le CLI Firebase)
+
+> **Pas de Firebase Storage** : les images sont compressées (JPEG 720 px) et stockées en base64
+> dans la Realtime Database — gratuit, et ça évite le plan Blaze (carte bancaire) que Storage
+> impose désormais aux nouveaux projets.
 
 > Les règles fournies exigent juste d'être connecté (`auth != null`). C'est volontaire pour la
 > démo — pour un usage réel, restreignez l'écriture au nœud de l'utilisateur connecté.
@@ -68,9 +70,9 @@ cd L-Chat
 ```
 users/
   {uid}/
-    username, email, photoUrl, createdAt
+    username, email, photoData, createdAt
     snaps/            # snaps REÇUS (supprimés après visionnage)
-      {pushId}: fromUid, fromName, imageUrl, imageName, caption, createdAt
+      {pushId}: fromUid, fromName, imageData, caption, createdAt
     conversations/
       {otherUid}: name, lastMessage, lastMessageAt, unread
 
@@ -80,11 +82,10 @@ conversations/
       {pushId}: fromUid, text, createdAt
 
 stories/
-  {pushId}: fromUid, fromName, imageUrl, caption, createdAt   # expire après 24h (filtre client)
+  {pushId}: fromUid, fromName, imageData, caption, createdAt   # 24h (filtre + nettoyage client)
 
-Storage :
-  images/{uuid}.jpg        # snaps
-  profile/{uid}.jpg        # photos de profil
+imageData / photoData : base64 d'une image JPEG compressée (720 px, qualité 65 ;
+photo de profil 512 px, qualité 80). Limite du plan gratuit : 100 Mo.
 ```
 
 ## Structure du projet

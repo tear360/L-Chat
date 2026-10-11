@@ -10,10 +10,10 @@ import android.view.animation.LinearInterpolator
 import android.widget.LinearLayout
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.view.setPadding
-import coil.load
 import com.lchat.app.databinding.ActivityViewStoryBinding
 import com.lchat.app.model.StoryItem
 import com.lchat.app.util.AppUtils
+import com.lchat.app.util.ImageStore
 import java.io.Serializable
 
 class ViewStoryActivity : AppCompatActivity() {
@@ -121,12 +121,11 @@ class ViewStoryActivity : AppCompatActivity() {
         }
 
         binding.imageProgress.visibility = View.VISIBLE
-        binding.storyImage.load(story.imageUrl) {
-            listener(
-                onSuccess = { _, _ -> binding.imageProgress.visibility = View.GONE },
-                onError = { _, _ -> binding.imageProgress.visibility = View.GONE }
-            )
+        val bitmap = ImageStore.decode(story.imageData)
+        if (bitmap != null) {
+            binding.storyImage.setImageBitmap(bitmap)
         }
+        binding.imageProgress.visibility = View.GONE
 
         startSegmentAnimation()
     }

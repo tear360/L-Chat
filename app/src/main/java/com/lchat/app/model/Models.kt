@@ -6,8 +6,7 @@ data class SnapItem(
     var key: String = "",
     var fromUid: String = "",
     var fromName: String = "",
-    var imageUrl: String = "",
-    var imageName: String = "",
+    var imageData: String = "",
     var caption: String = "",
     var createdAt: Long = 0
 ) : Serializable
@@ -16,7 +15,7 @@ data class User(
     var uid: String = "",
     var username: String = "",
     var email: String = "",
-    var photoUrl: String = ""
+    var photoData: String = ""
 ) : Serializable
 
 data class ChatMessage(
@@ -37,7 +36,7 @@ data class StoryItem(
     var id: String = "",
     var fromUid: String = "",
     var fromName: String = "",
-    var imageUrl: String = "",
+    var imageData: String = "",
     var caption: String = "",
     var createdAt: Long = 0
 ) : Serializable

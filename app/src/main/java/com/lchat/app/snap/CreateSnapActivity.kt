@@ -2,7 +2,6 @@ package com.lchat.app.snap
 
 import android.app.Activity
 import android.content.Intent
-import android.net.Uri
 import android.os.Bundle
 import android.view.View
 import android.widget.Toast
@@ -10,11 +9,9 @@ import androidx.appcompat.app.AppCompatActivity
 import coil.load
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.database.FirebaseDatabase
-import com.google.firebase.storage.FirebaseStorage
-import com.lchat.app.R
 import com.lchat.app.databinding.ActivityCreateSnapBinding
+import com.lchat.app.util.ImageStore
 import java.io.File
-import java.util.UUID
 
 class CreateSnapActivity : AppCompatActivity() {
 
@@ -59,40 +56,35 @@ class CreateSnapActivity : AppCompatActivity() {
         binding.uploadProgress.visibility = View.VISIBLE
 
         myUsername { fromName ->
-            uploadImage { imageUrl ->
-                val story = mapOf(
-                    "fromUid" to FirebaseAuth.getInstance().currentUser!!.uid,
-                    "fromName" to fromName,
-                    "imageUrl" to imageUrl,
-                    "imageName" to imagePath!!.substringAfterLast('/'),
-                    "caption" to binding.captionInput.text.toString(),
-                    "createdAt" to System.currentTimeMillis()
-                )
-                FirebaseDatabase.getInstance().getReference("stories")
-                    .push()
-                    .setValue(story)
-                    .addOnSuccessListener {
-                        Toast.makeText(this, "Added to your Story", Toast.LENGTH_SHORT).show()
-                        finish()
+            Thread {
+                val imageData = try {
+                    ImageStore.encodeFile(File(imagePath!!))
+                } catch (e: Exception) {
+                    null
+                }
+                runOnUiThread {
+                    if (imageData == null) {
+                        saveFailed()
+                        return@runOnUiThread
                     }
-                    .addOnFailureListener {
-                        uploadFailed(it)
-                    }
-            }
+                    val story = mapOf(
+                        "fromUid" to FirebaseAuth.getInstance().currentUser!!.uid,
+                        "fromName" to fromName,
+                        "imageData" to imageData,
+                        "caption" to binding.captionInput.text.toString(),
+                        "createdAt" to System.currentTimeMillis()
+                    )
+                    FirebaseDatabase.getInstance().getReference("stories")
+                        .push()
+                        .setValue(story)
+                        .addOnSuccessListener {
+                            Toast.makeText(this, "Added to your Story", Toast.LENGTH_SHORT).show()
+                            finish()
+                        }
+                        .addOnFailureListener { saveFailed() }
+                }
+            }.start()
         }
-    }
-
-    private fun uploadImage(onSuccess: (String) -> Unit) {
-        val file = File(imagePath!!)
-        val ref = FirebaseStorage.getInstance().getReference("images")
-            .child("${UUID.randomUUID()}.jpg")
-        ref.putFile(Uri.fromFile(file))
-            .continueWithTask { task ->
-                if (!task.isSuccessful) throw task.exception ?: Exception("Upload failed")
-                ref.downloadUrl
-            }
-            .addOnSuccessListener { uri -> onSuccess(uri.toString()) }
-            .addOnFailureListener { uploadFailed(it) }
     }
 
     private fun myUsername(onResult: (String) -> Unit) {
@@ -104,11 +96,11 @@ class CreateSnapActivity : AppCompatActivity() {
             .addOnFailureListener { onResult("Someone") }
     }
 
-    private fun uploadFailed(e: Exception) {
+    private fun saveFailed() {
         uploading = false
         setButtonsEnabled(true)
         binding.uploadProgress.visibility = View.GONE
-        Toast.makeText(this, "Upload failed: ${e.message}", Toast.LENGTH_SHORT).show()
+        Toast.makeText(this, "Could not save the snap. Try again.", Toast.LENGTH_SHORT).show()
     }
 
     private fun setButtonsEnabled(enabled: Boolean) {

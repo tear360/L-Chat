@@ -6,12 +6,10 @@ import android.view.View
 import android.view.animation.LinearInterpolator
 import androidx.activity.OnBackPressedCallback
 import androidx.appcompat.app.AppCompatActivity
-import coil.ImageLoader
-import coil.load
-import coil.request.ImageRequest
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.database.FirebaseDatabase
 import com.lchat.app.databinding.ActivityViewSnapBinding
+import com.lchat.app.util.ImageStore
 
 class ViewSnapActivity : AppCompatActivity() {
 
@@ -20,7 +18,7 @@ class ViewSnapActivity : AppCompatActivity() {
     private var closed = false
 
     private val snapKey: String by lazy { intent.getStringExtra("snapKey") ?: "" }
-    private val imageUrl: String by lazy { intent.getStringExtra("imageUrl") ?: "" }
+    private val imageData: String by lazy { intent.getStringExtra("imageData") ?: "" }
     private val caption: String by lazy { intent.getStringExtra("caption") ?: "" }
     private val fromName: String by lazy { intent.getStringExtra("fromName") ?: "" }
 
@@ -36,12 +34,11 @@ class ViewSnapActivity : AppCompatActivity() {
             binding.captionText.visibility = View.VISIBLE
         }
 
-        binding.snapImage.load(imageUrl) {
-            listener(
-                onSuccess = { _, _ -> binding.imageProgress.visibility = View.GONE },
-                onError = { _, _ -> binding.imageProgress.visibility = View.GONE }
-            )
+        val bitmap = ImageStore.decode(imageData)
+        if (bitmap != null) {
+            binding.snapImage.setImageBitmap(bitmap)
         }
+        binding.imageProgress.visibility = View.GONE
 
         onBackPressedDispatcher.addCallback(this, object : OnBackPressedCallback(true) {
             override fun handleOnBackPressed() {
