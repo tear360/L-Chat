@@ -61,7 +61,7 @@ class ChatListAdapter(
             binding.snapBadgeIcon.visibility = android.view.View.VISIBLE
 
             binding.itemName.text = snap.fromName
-            binding.itemSubtitle.text = "New Snap"
+            binding.itemSubtitle.text = "Nouveau snap"
             binding.itemSubtitle.setTextColor(
                 binding.root.context.getColor(com.lchat.app.R.color.red)
             )
@@ -84,7 +84,7 @@ class ChatListAdapter(
 
             binding.itemName.text = conversation.name
             if (conversation.unread) {
-                binding.itemSubtitle.text = "New Chat"
+                binding.itemSubtitle.text = "Nouvelle discussion"
                 binding.itemSubtitle.setTextColor(
                     binding.root.context.getColor(com.lchat.app.R.color.blue)
                 )
@@ -117,7 +117,7 @@ class ChatListAdapter(
             if (group.lastMessage.isNotEmpty()) {
                 binding.itemSubtitle.text = group.lastMessage
             } else {
-                binding.itemSubtitle.text = "Group"
+                binding.itemSubtitle.text = "Groupe"
             }
             binding.itemSubtitle.setTextColor(
                 binding.root.context.getColor(com.lchat.app.R.color.grayText)

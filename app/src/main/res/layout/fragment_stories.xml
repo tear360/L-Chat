@@ -44,7 +44,7 @@
         android:layout_weight="1"
         android:gravity="center"
         android:padding="32dp"
-        android:text="No stories right now.&#10;Tap &quot;My Story&quot; to post your first one!"
+        android:text="Aucune story pour le moment.&#10;Appuie sur « Ma story » pour en publier une !"
         android:textAlignment="center"
         android:textColor="@color/grayText"
         android:textSize="15sp"

@@ -38,15 +38,31 @@ class AuthActivity : AppCompatActivity() {
 
         binding.toggleAuth.setOnClickListener { toggleMode() }
         binding.authButton.setOnClickListener { submit() }
+        binding.forgotPassword.setOnClickListener { sendResetEmail() }
+    }
+
+    private fun sendResetEmail() {
+        val email = binding.emailInput.text.toString().trim()
+        if (email.isEmpty()) {
+            showError("Entre ton email d'abord.")
+            return
+        }
+        mAuth.sendPasswordResetEmail(email)
+            .addOnSuccessListener {
+                showError("Email de réinitialisation envoyé à $email")
+            }
+            .addOnFailureListener {
+                showError("Échec : ${it.localizedMessage}")
+            }
     }
 
     private fun toggleMode() {
         signUpMode = !signUpMode
         binding.usernameLayout.visibility = if (signUpMode) View.VISIBLE else View.GONE
-        binding.authButton.text = if (signUpMode) "Sign Up" else "Log In"
+        binding.authButton.text = if (signUpMode) "S'inscrire" else "Se connecter"
         binding.toggleAuth.text =
-            if (signUpMode) "Already have an account? Log in"
-            else "Don't have an account? Sign up"
+            if (signUpMode) "Deja un compte ? Connecte-toi"
+            else "Pas de compte ? Inscris-toi"
         hideError()
     }
 
@@ -58,21 +74,21 @@ class AuthActivity : AppCompatActivity() {
         val username = binding.usernameInput.text.toString().trim()
 
         if (email.isEmpty()) {
-            showError("Enter your email.")
+            showError("Entre ton email.")
             return
         }
         if (password.length < 6) {
-            showError("Password must be at least 6 characters.")
+            showError("6 caractères minimum pour le mot de passe.")
             return
         }
         if (signUpMode && username.isEmpty()) {
-            showError("Choose a username.")
+            showError("Choisis un pseudo.")
             return
         }
 
         hideKeyboard()
         binding.authButton.isEnabled = false
-        binding.authButton.text = if (signUpMode) "Creating account..." else "Logging in..."
+        binding.authButton.text = if (signUpMode) "Création du compte..." else "Connexion..."
 
         if (signUpMode) {
             createAccount(email, password, username)
@@ -90,7 +106,7 @@ class AuthActivity : AppCompatActivity() {
                     ensureProfile(uid, email)
                 } else {
                     resetButton()
-                    showError(task.exception?.localizedMessage ?: "Login failed. Try again.")
+                    showError(task.exception?.localizedMessage ?: "Connexion échouée. Réessaie.")
                 }
             }
     }
@@ -113,7 +129,7 @@ class AuthActivity : AppCompatActivity() {
                         }
                 } else {
                     resetButton()
-                    showError(task.exception?.localizedMessage ?: "Sign up failed. Try again.")
+                    showError(task.exception?.localizedMessage ?: "Inscription échouée. Réessaie.")
                 }
             }
     }
@@ -156,7 +172,7 @@ class AuthActivity : AppCompatActivity() {
 
     private fun resetButton() {
         binding.authButton.isEnabled = true
-        binding.authButton.text = if (signUpMode) "Sign Up" else "Log In"
+        binding.authButton.text = if (signUpMode) "S'inscrire" else "Se connecter"
     }
 
     private fun showError(message: String) {

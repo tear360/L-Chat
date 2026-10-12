@@ -38,6 +38,9 @@ class SimpleUsersAdapter(
             binding.userInitials.setTextColor(AppUtils.initialsTextColor(color))
             binding.userName.text = user.username
             binding.userEmail.text = user.email
+            com.lchat.app.friends.FriendsActivity.showAvatar(
+                binding.avatarImage, binding.userInitials, user.photoData
+            )
             binding.userCheck.visibility = View.GONE
 
             binding.root.setOnClickListener { onUserClick(user) }

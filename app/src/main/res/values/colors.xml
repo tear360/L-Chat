@@ -11,6 +11,8 @@
     <color name="blue">#12A5FF</color>
     <color name="darkSurface">#1A1A1A</color>
     <color name="onYellow">#000000</color>
+    <color name="iconOnDark">#FFFFFF</color>
+    <color name="darkCircle">#99000000</color>
 
     <color name="avatarYellow">#FFFC00</color>
     <color name="avatarBlue">#2EC4FF</color>

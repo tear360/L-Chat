@@ -32,7 +32,7 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_marginTop="16dp"
-            android:text="Camera access needed"
+            android:text="Accès caméra nécessaire"
             android:textColor="@color/white"
             android:textSize="18sp"
             android:textStyle="bold" />
@@ -42,7 +42,7 @@
             android:layout_height="wrap_content"
             android:layout_marginTop="6dp"
             android:gravity="center"
-            android:text="L Chat needs the camera to take snaps."
+            android:text="L Chat a besoin de la caméra pour prendre des snaps."
             android:textColor="@color/grayIcon"
             android:textSize="14sp" />
 
@@ -51,7 +51,7 @@
             android:layout_width="match_parent"
             android:layout_height="50dp"
             android:layout_marginTop="24dp"
-            android:text="Allow camera"
+            android:text="Autoriser la caméra"
             android:textAllCaps="false"
             android:textStyle="bold"
             app:cornerRadius="25dp" />
@@ -62,7 +62,7 @@
             android:layout_width="match_parent"
             android:layout_height="50dp"
             android:layout_marginTop="10dp"
-            android:text="Choose from gallery"
+            android:text="Choisir dans la galerie"
             android:textAllCaps="false"
             android:textColor="@color/white"
             app:cornerRadius="25dp"
@@ -98,17 +98,17 @@
             android:contentDescription="Flash"
             android:padding="10dp"
             android:src="@drawable/ic_flash"
-            android:tint="@color/white" />
+            android:tint="@color/iconOnDark" />
 
         <ImageButton
             android:id="@+id/flipCameraButton"
             android:layout_width="44dp"
             android:layout_height="44dp"
             android:background="@drawable/bg_circle_dark"
-            android:contentDescription="Flip camera"
+            android:contentDescription="Retourner la caméra"
             android:padding="10dp"
             android:src="@drawable/ic_flip"
-            android:tint="@color/white" />
+            android:tint="@color/iconOnDark" />
     </LinearLayout>
 
     <LinearLayout
@@ -126,10 +126,10 @@
             android:layout_width="52dp"
             android:layout_height="52dp"
             android:background="@drawable/bg_circle_light"
-            android:contentDescription="Gallery"
+            android:contentDescription="Galerie"
             android:padding="13dp"
             android:src="@drawable/ic_gallery"
-            android:tint="@color/white" />
+            android:tint="@color/iconOnDark" />
 
         <Space
             android:layout_width="0dp"
@@ -141,7 +141,7 @@
             android:layout_width="84dp"
             android:layout_height="84dp"
             android:background="@drawable/bg_capture_button"
-            android:contentDescription="Take photo"
+            android:contentDescription="Prendre une photo"
             android:scaleType="fitCenter" />
 
         <Space
@@ -159,7 +159,7 @@
         android:layout_width="48dp"
         android:layout_height="48dp"
         android:layout_gravity="center"
-        android:indeterminateTint="@color/white"
+        android:indeterminateTint="@color/iconOnDark"
         android:visibility="gone" />
 
 </FrameLayout>

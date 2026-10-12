@@ -16,12 +16,10 @@ import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.database.FirebaseDatabase
 import com.lchat.app.auth.AuthActivity
-import com.lchat.app.contacts.ContactsActivity
 import com.lchat.app.databinding.FragmentProfileBinding
+import com.lchat.app.settings.SettingsActivity
 import com.lchat.app.util.AppUtils
 import com.lchat.app.util.ImageStore
-import com.lchat.app.util.Prefs
-import com.lchat.app.util.Updater
 
 class ProfileFragment : Fragment() {
 
@@ -55,104 +53,11 @@ class ProfileFragment : Fragment() {
             )
         }
         binding.logoutRow.setOnClickListener { confirmLogout() }
-        binding.contactsRow.setOnClickListener {
-            startActivity(Intent(requireContext(), ContactsActivity::class.java))
-        }
-        binding.updateRow.setOnClickListener { checkUpdates() }
-        binding.switchAccountRow.setOnClickListener { showAccountSwitcher() }
-
-        binding.darkModeSwitch.isChecked = Prefs.isDarkMode(requireContext())
-        binding.darkModeSwitch.setOnCheckedChangeListener { _, isChecked ->
-            Prefs.setDarkMode(requireContext(), isChecked)
+        binding.settingsRow.setOnClickListener {
+            startActivity(Intent(requireContext(), SettingsActivity::class.java))
         }
 
         loadProfile()
-        loadContactsCount()
-    }
-
-    private fun loadContactsCount() {
-        Db.ref("users").child(myUid).child("contacts").get()
-            .addOnSuccessListener { snapshot ->
-                if (_binding == null) return@addOnSuccessListener
-                binding.contactsCount.text = snapshot.childrenCount.toString()
-            }
-    }
-
-    private fun checkUpdates() {
-        binding.updateLabel.text = "Checking..."
-        requireContext().let { ctx ->
-            Updater.checkForUpdate(ctx) { tag, downloadUrl ->
-                requireActivity()?.runOnUiThread {
-                    if (_binding == null) return@runOnUiThread
-                    binding.updateLabel.text = "Check for updates"
-                    val current = "v" + com.lchat.app.BuildConfig.VERSION_NAME
-                    if (tag == null || tag == current) {
-                        Toast.makeText(ctx, "You're up to date ($current)", Toast.LENGTH_SHORT).show()
-                    } else if (downloadUrl == null) {
-                        Toast.makeText(ctx, "Update $tag available - you've skipped it", Toast.LENGTH_LONG).show()
-                    } else {
-                        Updater.promptUpdate(ctx, tag, downloadUrl)
-                    }
-                }
-            }
-        }
-    }
-
-    private fun showAccountSwitcher() {
-        val ctx = requireContext()
-        val accounts = Prefs.accounts(ctx).toMutableList()
-        val currentEmail = FirebaseAuth.getInstance().currentUser?.email ?: ""
-        val options = ArrayList<String>()
-        for (a in accounts) {
-            options.add(if (a == currentEmail) "$a  (current)" else a)
-        }
-        options.add("+ Add another account")
-        options.add("- Log out")
-
-        MaterialAlertDialogBuilder(ctx)
-            .setTitle("Switch account")
-            .setItems(options.toTypedArray()) { _, which ->
-                val choice = options[which]
-                when {
-                    choice.startsWith("+") -> {
-                        FirebaseAuth.getInstance().signOut()
-                        val intent = Intent(ctx, AuthActivity::class.java)
-                        intent.putExtra("addAccount", true)
-                        intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK)
-                        ctx.startActivity(intent)
-                        requireActivity().finishAffinity()
-                    }
-                    choice.startsWith("-") -> {
-                        confirmLogout()
-                    }
-                    else -> {
-                        val email = choice.substringBefore("  (")
-                        val password = Prefs.lastPassword(ctx) ?: ""
-                        if (password.isEmpty()) {
-                            Toast.makeText(ctx, "No saved password for $email", Toast.LENGTH_SHORT).show()
-                            return@setItems
-                        }
-                        Toast.makeText(ctx, "Switching to $email...", Toast.LENGTH_SHORT).show()
-                        FirebaseAuth.getInstance().signInWithEmailAndPassword(email, password)
-                            .addOnCompleteListener { task ->
-                                if (task.isSuccessful) {
-                                    val intent = Intent(ctx, com.lchat.app.MainActivity::class.java)
-                                    intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK)
-                                    ctx.startActivity(intent)
-                                    requireActivity().finishAffinity()
-                                } else {
-                                    Toast.makeText(ctx, "Failed: ${task.exception?.localizedMessage}", Toast.LENGTH_SHORT).show()
-                                }
-                            }
-                    }
-                }
-            }
-            .show()
-    }
-
-    override fun onDestroyView() {
-        super.onDestroyView()
-        _binding = null
     }
 
     private fun loadProfile() {
@@ -163,7 +68,7 @@ class ProfileFragment : Fragment() {
                 val email = snapshot.child("email").value as? String ?: ""
                 val photoData = snapshot.child("photoData").value as? String ?: ""
 
-                binding.profileUsername.text = myUsername.ifEmpty { "L Chat user" }
+                binding.profileUsername.text = myUsername.ifEmpty { "Utilisateur L Chat" }
                 binding.profileEmail.text = email
                 binding.usernameValue.text = myUsername
 
@@ -186,18 +91,18 @@ class ProfileFragment : Fragment() {
     private fun showUsernameDialog() {
         val input = EditText(requireContext())
         input.setText(myUsername)
-        input.hint = "Username"
+        input.hint = "Pseudo"
         val padding = (20 * resources.displayMetrics.density).toInt()
         input.setPadding(padding, padding / 2, padding, padding / 2)
 
         MaterialAlertDialogBuilder(requireContext())
-            .setTitle("Change username")
+            .setTitle("Changer le pseudo")
             .setView(input)
-            .setPositiveButton("Save") { _, _ ->
+            .setPositiveButton("Valider") { _, _ ->
                 val newName = input.text.toString().trim()
                 if (newName.isNotEmpty()) updateUsername(newName)
             }
-            .setNegativeButton("Cancel", null)
+            .setNegativeButton("Annuler", null)
             .show()
     }
 
@@ -210,10 +115,10 @@ class ProfileFragment : Fragment() {
                 binding.profileUsername.text = newName
                 binding.usernameValue.text = newName
                 binding.profileInitials.text = AppUtils.initials(newName)
-                Toast.makeText(requireContext(), "Username updated", Toast.LENGTH_SHORT).show()
+                Toast.makeText(requireContext(), "Pseudo mis à jour", Toast.LENGTH_SHORT).show()
             }
             .addOnFailureListener {
-                Toast.makeText(requireContext(), "Update failed", Toast.LENGTH_SHORT).show()
+                Toast.makeText(requireContext(), "Échec de la mise à jour", Toast.LENGTH_SHORT).show()
             }
     }
 
@@ -230,7 +135,7 @@ class ProfileFragment : Fragment() {
             if (photoData == null) {
                 activity?.runOnUiThread {
                     if (_binding != null) {
-                        Toast.makeText(requireContext(), "Photo failed", Toast.LENGTH_SHORT).show()
+                        Toast.makeText(requireContext(), "Échec de la photo", Toast.LENGTH_SHORT).show()
                     }
                 }
                 return@Thread
@@ -246,7 +151,7 @@ class ProfileFragment : Fragment() {
                         binding.profilePhoto.visibility = View.VISIBLE
                         binding.profileInitials.visibility = View.GONE
                     }
-                    Toast.makeText(requireContext(), "Photo updated", Toast.LENGTH_SHORT).show()
+                    Toast.makeText(requireContext(), "Photo mise à jour", Toast.LENGTH_SHORT).show()
                 }
                 .addOnFailureListener {
                     if (_binding == null) return@addOnFailureListener
@@ -261,16 +166,16 @@ class ProfileFragment : Fragment() {
 
     private fun confirmLogout() {
         MaterialAlertDialogBuilder(requireContext())
-            .setTitle("Log out")
-            .setMessage("Are you sure you want to log out?")
-            .setPositiveButton("Log out") { _, _ ->
+            .setTitle("Se déconnecter")
+            .setMessage("Voulez-vous vraiment te déconnecter ?")
+            .setPositiveButton("Se déconnecter") { _, _ ->
                 FirebaseAuth.getInstance().signOut()
                 val intent = Intent(requireContext(), AuthActivity::class.java)
                 intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK)
                 startActivity(intent)
                 requireActivity().finishAffinity()
             }
-            .setNegativeButton("Cancel", null)
+            .setNegativeButton("Annuler", null)
             .show()
     }
 }

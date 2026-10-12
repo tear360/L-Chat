@@ -49,7 +49,7 @@
         android:layout_weight="1"
         android:gravity="center"
         android:padding="32dp"
-        android:text="No chats yet.&#10;Tap the buttons below to start a chat!"
+        android:text="Aucune discussion.&#10;Utilise les boutons en bas pour commencer !"
         android:textAlignment="center"
         android:textColor="@color/grayText"
         android:textSize="15sp"
@@ -72,7 +72,7 @@
         android:layout_gravity="bottom|end"
         android:layout_marginEnd="20dp"
         android:layout_marginBottom="88dp"
-        android:contentDescription="New group"
+        android:contentDescription="Nouveau groupe"
         android:src="@drawable/ic_group"
         app:backgroundTint="@color/black"
         app:tint="@color/snapYellow" />
@@ -84,7 +84,7 @@
         android:layout_gravity="bottom|end"
         android:layout_marginEnd="20dp"
         android:layout_marginBottom="20dp"
-        android:contentDescription="New chat"
+        android:contentDescription="Nouvelle discussion"
         android:src="@drawable/ic_add_chat"
         app:backgroundTint="@color/snapYellow"
         app:tint="@color/black" />

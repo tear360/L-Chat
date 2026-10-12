@@ -36,7 +36,7 @@
                 android:layout_width="match_parent"
                 android:layout_height="match_parent"
                 android:gravity="center"
-                android:textColor="@color/black"
+                android:textColor="@color/onYellow"
                 android:textSize="16sp"
                 android:textStyle="bold" />
         </FrameLayout>
@@ -53,7 +53,7 @@
                 android:layout_width="14dp"
                 android:layout_height="14dp"
                 android:layout_gravity="center"
-                android:contentDescription="Add story"
+                android:contentDescription="Ajouter une story"
                 android:src="@drawable/ic_add" />
         </FrameLayout>
     </FrameLayout>

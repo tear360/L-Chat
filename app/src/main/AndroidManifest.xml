@@ -58,11 +58,12 @@
         <activity
             android:name=".group.CreateGroupActivity"
             android:exported="false" />
-        <activity
-            android:name=".contacts.ContactsActivity"
-            android:exported="false" />
+        <activity android:name=".friends.FriendsActivity" android:exported="false" />
         <activity
             android:name=".group.GroupSettingsActivity"
+            android:exported="false" />
+        <activity
+            android:name=".settings.SettingsActivity"
             android:exported="false" />
         <activity
             android:name=".story.ViewStoryActivity"

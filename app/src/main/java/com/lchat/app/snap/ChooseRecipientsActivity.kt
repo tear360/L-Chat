@@ -15,7 +15,7 @@ import com.google.firebase.database.DataSnapshot
 import com.google.firebase.database.DatabaseError
 import com.lchat.app.R
 import com.lchat.app.adapter.UsersAdapter
-import com.lchat.app.contacts.ContactsActivity
+import com.lchat.app.friends.FriendsActivity
 import com.lchat.app.databinding.ActivityChooseRecipientsBinding
 import com.lchat.app.model.User
 import com.lchat.app.util.Db
@@ -33,7 +33,7 @@ class ChooseRecipientsActivity : AppCompatActivity() {
     private lateinit var binding: ActivityChooseRecipientsBinding
     private val adapter = UsersAdapter()
     private val allUsers = ArrayList<User>()
-    private val contactUids = HashSet<String>()
+    private val friendUids = HashSet<String>()
     private var myName = ""
     private var sending = false
     private var contactsOnly = true
@@ -61,7 +61,7 @@ class ChooseRecipientsActivity : AppCompatActivity() {
             applyFilter()
         }
         binding.addContactsButton.setOnClickListener {
-            startActivity(Intent(this, ContactsActivity::class.java))
+            startActivity(Intent(this, FriendsActivity::class.java))
         }
 
         binding.searchInput.addTextChangedListener(object : TextWatcher {
@@ -83,24 +83,24 @@ class ChooseRecipientsActivity : AppCompatActivity() {
     override fun onDestroy() {
         super.onDestroy()
         usersListener?.let { Db.ref("users").removeEventListener(it) }
-        contactsListener?.let { myContactsRef().removeEventListener(it) }
+        contactsListener?.let { myFriendsRef().removeEventListener(it) }
     }
 
-    private fun myContactsRef() = Db.ref("users")
+    private fun myFriendsRef() = Db.ref("users")
         .child(FirebaseAuth.getInstance().currentUser!!.uid)
-        .child("contacts")
+        .child("friends")
 
     private fun listenContacts(myUid: String) {
-        val ref = myContactsRef()
+        val ref = myFriendsRef()
         val listener = object : ChildEventListener {
             override fun onChildAdded(snapshot: DataSnapshot, previousChildName: String?) {
-                contactUids.add(snapshot.key ?: return)
+                friendUids.add(snapshot.key ?: return)
                 applyFilter()
             }
 
             override fun onChildChanged(snapshot: DataSnapshot, previousChildName: String?) {}
             override fun onChildRemoved(snapshot: DataSnapshot) {
-                contactUids.remove(snapshot.key)
+                friendUids.remove(snapshot.key)
                 applyFilter()
             }
 
@@ -145,7 +145,7 @@ class ChooseRecipientsActivity : AppCompatActivity() {
 
     private fun applyFilter() {
         val query = binding.searchInput.text.toString().trim().lowercase()
-        val base = if (contactsOnly) allUsers.filter { contactUids.contains(it.uid) } else allUsers
+        val base = if (contactsOnly) allUsers.filter { friendUids.contains(it.uid) } else allUsers
         val filtered = if (query.isEmpty()) {
             base.sortedBy { it.username.lowercase() }
         } else {
@@ -159,10 +159,10 @@ class ChooseRecipientsActivity : AppCompatActivity() {
         binding.emptyView.visibility = if (nothingToShow) View.VISIBLE else View.GONE
         binding.emptyView.text = when {
             allUsers.isEmpty() -> "No other users yet.\nAsk a friend to sign up on L Chat!"
-            contactsOnly && contactUids.isEmpty() ->
-                "You have no contacts yet.\nTap \"Add contacts\" below to add some."
+            contactsOnly && friendUids.isEmpty() ->
+                "Tu n'as pas encore d'amis.\nAjoute des amis depuis Moi > Paramètres."
             query.isNotEmpty() -> "Nobody matches \"$query\"."
-            else -> "No contacts to show. Turn off \"Contacts only\" to see everyone."
+            else -> "Aucun ami à montrer. Désactive \"Amis uniquement\" pour voir tout le monde."
         }
     }
 
@@ -171,13 +171,13 @@ class ChooseRecipientsActivity : AppCompatActivity() {
 
         val selected = adapter.selectedUids()
         if (selected.isEmpty()) {
-            Toast.makeText(this, "Select at least one contact first", Toast.LENGTH_SHORT).show()
+            Toast.makeText(this, "Sélectionne au moins un contact", Toast.LENGTH_SHORT).show()
             return
         }
 
         val path = intent.getStringExtra(EXTRA_IMAGE_PATH)
         if (path == null || !File(path).exists()) {
-            Toast.makeText(this, "Image not found", Toast.LENGTH_SHORT).show()
+            Toast.makeText(this, "Image introuvable", Toast.LENGTH_SHORT).show()
             return
         }
 
@@ -199,7 +199,7 @@ class ChooseRecipientsActivity : AppCompatActivity() {
                 if (imageData == null) {
                     sending = false
                     binding.sendProgress.visibility = View.GONE
-                    Toast.makeText(this, "Could not process the image", Toast.LENGTH_SHORT).show()
+                    Toast.makeText(this, "Impossible de traiter l'image", Toast.LENGTH_SHORT).show()
                     return@runOnUiThread
                 }
 

@@ -51,6 +51,9 @@ class UsersAdapter : RecyclerView.Adapter<UsersAdapter.VH>() {
             binding.userInitials.setTextColor(AppUtils.initialsTextColor(color))
             binding.userName.text = user.username
             binding.userEmail.text = user.email
+            com.lchat.app.friends.FriendsActivity.showAvatar(
+                binding.avatarImage, binding.userInitials, user.photoData
+            )
             binding.userCheck.isChecked = selected.contains(user.uid)
             binding.root.isActivated = binding.userCheck.isChecked
 

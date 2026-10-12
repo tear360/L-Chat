@@ -17,7 +17,7 @@
             android:layout_width="match_parent"
             android:layout_height="match_parent"
             android:background="@color/black"
-            android:contentDescription="Snap preview"
+            android:contentDescription="Aperçu du snap"
             android:scaleType="centerCrop" />
 
         <ImageButton
@@ -27,7 +27,7 @@
             android:layout_gravity="top|start"
             android:layout_margin="16dp"
             android:background="@drawable/bg_circle_dark"
-            android:contentDescription="Close"
+            android:contentDescription="Fermer"
             android:padding="11dp"
             android:src="@drawable/ic_close"
             android:tint="@color/white" />
@@ -42,7 +42,7 @@
             android:layout_marginBottom="24dp"
             android:background="@drawable/bg_edittext_caption"
             android:gravity="center"
-            android:hint="Add a caption..."
+            android:hint="Ajouter une légende..."
             android:importantForAutofill="no"
             android:inputType="textCapSentences|textMultiLine"
             android:maxLength="120"
@@ -75,7 +75,7 @@
             style="@style/Widget.Material3.Button.OutlinedButton"
             android:layout_width="wrap_content"
             android:layout_height="48dp"
-            android:text="My Story"
+            android:text="Ma story"
             android:textAllCaps="false"
             android:textColor="@color/white"
             app:cornerRadius="24dp"

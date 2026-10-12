@@ -23,7 +23,7 @@ class NewChatActivity : AppCompatActivity() {
     private lateinit var binding: ActivityNewChatBinding
     private val adapter = SimpleUsersAdapter { user -> openChat(user) }
     private val allUsers = ArrayList<User>()
-    private val contactUids = HashSet<String>()
+    private val friendUids = HashSet<String>()
     private var usersListener: ChildEventListener? = null
     private var contactsListener: ChildEventListener? = null
     private var showContactsOnly = false
@@ -45,7 +45,7 @@ class NewChatActivity : AppCompatActivity() {
             override fun afterTextChanged(s: Editable?) { applyFilter() }
         })
 
-        binding.tabContacts.setOnClickListener { setMode(true) }
+        binding.tabFriends.setOnClickListener { setMode(true) }
         binding.tabSearch.setOnClickListener { setMode(false) }
         binding.tabGroup.setOnClickListener {
             startActivity(Intent(this, CreateGroupActivity::class.java))
@@ -58,34 +58,34 @@ class NewChatActivity : AppCompatActivity() {
 
     private fun setMode(contactsOnly: Boolean) {
         showContactsOnly = contactsOnly
-        binding.tabContacts.isChecked = contactsOnly
+        binding.tabFriends.isChecked = contactsOnly
         binding.tabSearch.isChecked = !contactsOnly
         binding.searchInput.hint =
-            if (contactsOnly) "Search your contacts" else "Search any username"
+            if (contactsOnly) "Chercher parmi tes amis" else "Chercher un pseudo"
         applyFilter()
     }
 
     override fun onDestroy() {
         super.onDestroy()
         usersListener?.let { Db.ref("users").removeEventListener(it) }
-        contactsListener?.let { myContactsRef().removeEventListener(it) }
+        contactsListener?.let { myFriendsRef().removeEventListener(it) }
     }
 
-    private fun myContactsRef() = Db.ref("users")
+    private fun myFriendsRef() = Db.ref("users")
         .child(FirebaseAuth.getInstance().currentUser!!.uid)
-        .child("contacts")
+        .child("friends")
 
     private fun listenContacts() {
-        val ref = myContactsRef()
+        val ref = myFriendsRef()
         val listener = object : ChildEventListener {
             override fun onChildAdded(snapshot: DataSnapshot, previousChildName: String?) {
-                contactUids.add(snapshot.key ?: return)
+                friendUids.add(snapshot.key ?: return)
                 applyFilter()
             }
 
             override fun onChildChanged(snapshot: DataSnapshot, previousChildName: String?) {}
             override fun onChildRemoved(snapshot: DataSnapshot) {
-                contactUids.remove(snapshot.key)
+                friendUids.remove(snapshot.key)
                 applyFilter()
             }
 
@@ -131,7 +131,7 @@ class NewChatActivity : AppCompatActivity() {
 
     private fun applyFilter() {
         val query = binding.searchInput.text.toString().trim().lowercase()
-        val base = if (showContactsOnly) allUsers.filter { contactUids.contains(it.uid) } else allUsers
+        val base = if (showContactsOnly) allUsers.filter { friendUids.contains(it.uid) } else allUsers
         val filtered = if (query.isEmpty()) {
             base.sortedBy { it.username.lowercase() }
         } else {

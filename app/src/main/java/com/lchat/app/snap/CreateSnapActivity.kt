@@ -80,7 +80,7 @@ class CreateSnapActivity : AppCompatActivity() {
                         .push()
                         .setValue(story)
                         .addOnSuccessListener {
-                            Toast.makeText(this, "Added to your Story", Toast.LENGTH_SHORT).show()
+                            Toast.makeText(this, "Ajouté à ta story", Toast.LENGTH_SHORT).show()
                             finish()
                         }
                         .addOnFailureListener { saveFailed() }
@@ -102,7 +102,7 @@ class CreateSnapActivity : AppCompatActivity() {
         uploading = false
         setButtonsEnabled(true)
         binding.uploadProgress.visibility = View.GONE
-        Toast.makeText(this, "Could not save the snap. Try again.", Toast.LENGTH_SHORT).show()
+        Toast.makeText(this, "Impossible d'enregistrer le snap.", Toast.LENGTH_SHORT).show()
     }
 
     private fun setButtonsEnabled(enabled: Boolean) {

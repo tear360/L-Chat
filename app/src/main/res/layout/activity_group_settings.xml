@@ -21,7 +21,7 @@
             android:layout_width="44dp"
             android:layout_height="44dp"
             android:background="?attr/selectableItemBackgroundBorderless"
-            android:contentDescription="Back"
+            android:contentDescription="Retour"
             android:padding="11dp"
             android:src="@drawable/ic_back" />
 
@@ -30,7 +30,7 @@
             android:layout_height="wrap_content"
             android:layout_marginStart="6dp"
             android:layout_weight="1"
-            android:text="Group info"
+            android:text="Info du groupe"
             android:textColor="@color/black"
             android:textSize="20sp"
             android:textStyle="bold" />
@@ -94,7 +94,7 @@
                         android:id="@+id/groupIcon"
                         android:layout_width="match_parent"
                         android:layout_height="match_parent"
-                        android:contentDescription="Group icon"
+                        android:contentDescription="Icône du groupe"
                         android:scaleType="centerCrop"
                         android:visibility="gone"
                         app:shapeAppearanceOverlay="@style/CircleShape" />
@@ -110,7 +110,7 @@
                     <TextView
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:text="Group icon"
+                        android:text="Icône du groupe"
                         android:textColor="@color/black"
                         android:textSize="16sp" />
 
@@ -118,7 +118,7 @@
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:layout_marginTop="2dp"
-                        android:text="Tap to change"
+                        android:text="Appuie pour changer"
                         android:textColor="@color/grayText"
                         android:textSize="13sp" />
                 </LinearLayout>
@@ -135,7 +135,7 @@
                 android:layout_height="wrap_content"
                 android:layout_margin="16dp"
                 android:background="@drawable/bg_edittext_rounded"
-                android:hint="Group name"
+                android:hint="Nom du groupe"
                 android:importantForAutofill="no"
                 android:inputType="text"
                 android:maxLines="1"
@@ -172,7 +172,7 @@
                     android:layout_width="0dp"
                     android:layout_height="wrap_content"
                     android:layout_weight="1"
-                    android:text="Members can edit group info"
+                    android:text="Les membres peuvent modifier le groupe"
                     android:textColor="@color/black"
                     android:textSize="16sp" />
 
@@ -189,7 +189,7 @@
                 android:paddingEnd="20dp"
                 android:paddingTop="4dp"
                 android:paddingBottom="8dp"
-                android:text="Members"
+                android:text="Membres"
                 android:textColor="@color/grayText"
                 android:textSize="13sp"
                 android:textStyle="bold" />
@@ -207,7 +207,7 @@
         android:layout_width="match_parent"
         android:layout_height="54dp"
         android:layout_margin="16dp"
-        android:text="Save changes"
+        android:text="Enregistrer"
         android:textAllCaps="false"
         android:textSize="16sp"
         android:textStyle="bold"

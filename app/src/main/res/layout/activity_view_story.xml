@@ -12,7 +12,7 @@
         android:layout_height="match_parent"
         android:layout_gravity="start"
         android:background="@android:color/transparent"
-        android:contentDescription="Previous"
+        android:contentDescription="Précédent"
         android:scaleType="fitXY" />
 
     <ImageButton
@@ -21,7 +21,7 @@
         android:layout_height="match_parent"
         android:layout_gravity="end"
         android:background="@android:color/transparent"
-        android:contentDescription="Next"
+        android:contentDescription="Suivant"
         android:scaleType="fitXY" />
 
     <ImageView
@@ -77,7 +77,7 @@
                     android:layout_width="match_parent"
                     android:layout_height="match_parent"
                     android:gravity="center"
-                    android:textColor="@color/black"
+                    android:textColor="@color/onYellow"
                     android:textSize="14sp"
                     android:textStyle="bold" />
             </FrameLayout>
@@ -110,7 +110,7 @@
                 android:layout_width="42dp"
                 android:layout_height="42dp"
                 android:background="?attr/selectableItemBackgroundBorderless"
-                android:contentDescription="Close"
+                android:contentDescription="Fermer"
                 android:padding="11dp"
                 android:src="@drawable/ic_close"
                 android:tint="@color/white" />

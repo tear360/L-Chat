@@ -22,7 +22,7 @@
             android:layout_width="44dp"
             android:layout_height="44dp"
             android:background="?attr/selectableItemBackgroundBorderless"
-            android:contentDescription="Back"
+            android:contentDescription="Retour"
             android:padding="11dp"
             android:src="@drawable/ic_back" />
 
@@ -31,7 +31,7 @@
             android:layout_height="wrap_content"
             android:layout_marginStart="6dp"
             android:layout_weight="1"
-            android:text="New Chat"
+            android:text="Nouvelle discussion"
             android:textColor="@color/black"
             android:textSize="20sp"
             android:textStyle="bold" />
@@ -46,12 +46,12 @@
         app:singleSelection="true">
 
         <com.google.android.material.button.MaterialButton
-            android:id="@+id/tabContacts"
+            android:id="@+id/tabFriends"
             style="@style/Widget.Material3.Button.OutlinedButton"
             android:layout_width="0dp"
             android:layout_height="42dp"
             android:layout_weight="1"
-            android:text="Contacts"
+            android:text="Mes amis"
             android:textAllCaps="false"
             android:textSize="13sp" />
 
@@ -61,7 +61,7 @@
             android:layout_width="0dp"
             android:layout_height="42dp"
             android:layout_weight="1"
-            android:text="Username"
+            android:text="Pseudo"
             android:textAllCaps="false"
             android:textSize="13sp" />
 
@@ -71,7 +71,7 @@
             android:layout_width="0dp"
             android:layout_height="42dp"
             android:layout_weight="1"
-            android:text="Group"
+            android:text="Groupe"
             android:textAllCaps="false"
             android:textSize="13sp" />
     </com.google.android.material.button.MaterialButtonToggleGroup>
@@ -84,7 +84,7 @@
         android:layout_marginEnd="16dp"
         android:layout_marginTop="6dp"
         android:background="@drawable/bg_edittext_rounded"
-        android:hint="Search"
+        android:hint="Rechercher"
         android:importantForAutofill="no"
         android:inputType="text"
         android:maxLines="1"
@@ -99,7 +99,7 @@
         android:layout_weight="1"
         android:gravity="center"
         android:padding="32dp"
-        android:text="No other users yet.&#10;Ask a friend to sign up on L Chat!"
+        android:text="Pas encore d'utilisateurs.&#10;Demande à un ami de s'inscrire !"
         android:textAlignment="center"
         android:textColor="@color/grayText"
         android:textSize="15sp"
