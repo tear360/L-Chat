@@ -11,6 +11,7 @@ import com.lchat.app.ui.CameraFragment
 import com.lchat.app.ui.ChatFragment
 import com.lchat.app.ui.ProfileFragment
 import com.lchat.app.ui.StoriesFragment
+import com.lchat.app.util.E2E
 
 class MainActivity : AppCompatActivity() {
 
@@ -19,11 +20,15 @@ class MainActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
-        if (FirebaseAuth.getInstance().currentUser == null) {
+        val currentUser = FirebaseAuth.getInstance().currentUser
+        if (currentUser == null) {
             startActivity(Intent(this, AuthActivity::class.java))
             finish()
             return
         }
+
+        E2E.init(this)
+        E2E.ensureKeys(this, currentUser.uid)
 
         binding = ActivityMainBinding.inflate(layoutInflater)
         setContentView(binding.root)

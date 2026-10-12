@@ -1,5 +1,7 @@
 package com.lchat.app.ui
 
+import com.lchat.app.util.Db
+
 import android.content.Intent
 import android.os.Bundle
 import android.view.LayoutInflater
@@ -60,7 +62,7 @@ class ProfileFragment : Fragment() {
     }
 
     private fun loadProfile() {
-        FirebaseDatabase.getInstance().getReference("users").child(myUid).get()
+        Db.ref("users").child(myUid).get()
             .addOnSuccessListener { snapshot ->
                 if (_binding == null) return@addOnSuccessListener
                 myUsername = snapshot.child("username").value as? String ?: ""
@@ -106,7 +108,7 @@ class ProfileFragment : Fragment() {
     }
 
     private fun updateUsername(newName: String) {
-        FirebaseDatabase.getInstance().getReference("users").child(myUid)
+        Db.ref("users").child(myUid)
             .child("username").setValue(newName)
             .addOnSuccessListener {
                 if (_binding == null) return@addOnSuccessListener
@@ -140,7 +142,7 @@ class ProfileFragment : Fragment() {
                 return@Thread
             }
 
-            FirebaseDatabase.getInstance().getReference("users").child(myUid)
+            Db.ref("users").child(myUid)
                 .child("photoData").setValue(photoData)
                 .addOnSuccessListener {
                     if (_binding == null) return@addOnSuccessListener

@@ -1,5 +1,7 @@
 package com.lchat.app.snap
 
+import com.lchat.app.util.Db
+
 import android.animation.ValueAnimator
 import android.os.Bundle
 import android.view.View
@@ -97,7 +99,7 @@ class ViewSnapActivity : AppCompatActivity() {
 
         val uid = FirebaseAuth.getInstance().currentUser?.uid
         if (uid != null && snapKey.isNotEmpty()) {
-            FirebaseDatabase.getInstance().getReference("users")
+            Db.ref("users")
                 .child(uid)
                 .child("snaps")
                 .child(snapKey)

@@ -1,5 +1,7 @@
 package com.lchat.app.ui
 
+import com.lchat.app.util.Db
+
 import android.content.Intent
 import android.os.Bundle
 import android.view.LayoutInflater
@@ -15,10 +17,12 @@ import com.google.firebase.database.FirebaseDatabase
 import com.lchat.app.adapter.ChatListAdapter
 import com.lchat.app.adapter.ChatRow
 import com.lchat.app.chat.ChatActivity
+import com.lchat.app.chat.NewChatActivity
 import com.lchat.app.databinding.FragmentChatBinding
 import com.lchat.app.model.Conversation
 import com.lchat.app.model.SnapItem
 import com.lchat.app.snap.ViewSnapActivity
+import com.lchat.app.util.E2E
 
 class ChatFragment : Fragment() {
 
@@ -27,6 +31,7 @@ class ChatFragment : Fragment() {
 
     private val snaps = LinkedHashMap<String, SnapItem>()
     private val conversations = LinkedHashMap<String, Conversation>()
+    private val previewKeys = HashMap<String, javax.crypto.SecretKey>()
     private val listeners =
         ArrayList<Pair<com.google.firebase.database.DatabaseReference, ChildEventListener>>()
 
@@ -49,8 +54,12 @@ class ChatFragment : Fragment() {
         binding.chatRecycler.layoutManager = LinearLayoutManager(requireContext())
         binding.chatRecycler.adapter = adapter
 
+        binding.newChatButton.setOnClickListener {
+            startActivity(Intent(requireContext(), NewChatActivity::class.java))
+        }
+
         val myUid = FirebaseAuth.getInstance().currentUser?.uid ?: return
-        val root = FirebaseDatabase.getInstance().getReference("users").child(myUid)
+        val root = Db.ref("users").child(myUid)
 
         listenSnaps(root.child("snaps"))
         listenConversations(root.child("conversations"))
@@ -126,13 +135,43 @@ class ChatFragment : Fragment() {
         createdAt = snapshot.child("createdAt").getValue(Long::class.java) ?: 0L
     )
 
-    private fun conversationFrom(snapshot: DataSnapshot, key: String) = Conversation(
-        otherUid = key,
-        name = snapshot.child("name").value as? String ?: "",
-        lastMessage = snapshot.child("lastMessage").value as? String ?: "",
-        lastMessageAt = snapshot.child("lastMessageAt").getValue(Long::class.java) ?: 0L,
-        unread = snapshot.child("unread").value as? Boolean ?: false
-    )
+    private fun conversationFrom(snapshot: DataSnapshot, key: String): Conversation {
+        val conversation = Conversation(
+            otherUid = key,
+            name = snapshot.child("name").value as? String ?: "",
+            lastMessage = "",
+            lastMessageAt = snapshot.child("lastMessageAt").getValue(Long::class.java) ?: 0L,
+            unread = snapshot.child("unread").value as? Boolean ?: false
+        )
+        decryptPreview(snapshot.child("lastMessage").value as? String ?: "", conversation)
+        return conversation
+    }
+
+    private fun decryptPreview(raw: String, conversation: Conversation) {
+        if (raw.isEmpty()) {
+            conversation.lastMessage = ""
+            refresh()
+            return
+        }
+        if (raw.startsWith("plain:")) {
+            conversation.lastMessage = raw.removePrefix("plain:")
+            refresh()
+            return
+        }
+        val cached = previewKeys[conversation.otherUid]
+        if (cached != null) {
+            conversation.lastMessage = E2E.decrypt(raw, cached) ?: "[Chiffré]"
+            refresh()
+            return
+        }
+        E2E.keyWithOther(conversation.otherUid) { key ->
+            if (key != null) previewKeys[conversation.otherUid] = key
+            activity?.runOnUiThread {
+                conversation.lastMessage = E2E.decrypt(raw, key) ?: "[Chiffré]"
+                refresh()
+            }
+        }
+    }
 
     private fun refresh() {
         if (_binding == null) return

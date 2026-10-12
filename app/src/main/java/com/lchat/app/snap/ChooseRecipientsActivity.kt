@@ -15,10 +15,10 @@ import com.google.firebase.database.DataSnapshot
 import com.google.firebase.database.DatabaseError
 import com.google.firebase.database.FirebaseDatabase
 import com.lchat.app.adapter.UsersAdapter
-import com.lchat.app.databinding.ActivityChooseRecipientsBinding
 import com.lchat.app.model.User
 import com.lchat.app.util.ImageStore
 import java.io.File
+import java.util.*
 
 class ChooseRecipientsActivity : AppCompatActivity() {
 
@@ -27,7 +27,7 @@ class ChooseRecipientsActivity : AppCompatActivity() {
         const val EXTRA_CAPTION = "caption"
     }
 
-    private lateinit var binding: ActivityChooseRecipientsBinding
+    private lateinit var binding: com.lchat.app.databinding.ActivityChooseRecipientsBinding
     private val adapter = UsersAdapter()
     private val allUsers = ArrayList<User>()
     private var myName = ""
@@ -37,7 +37,7 @@ class ChooseRecipientsActivity : AppCompatActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        binding = ActivityChooseRecipientsBinding.inflate(layoutInflater)
+        binding = com.lchat.app.databinding.ActivityChooseRecipientsBinding.inflate(layoutInflater)
         setContentView(binding.root)
 
         binding.backButton.setOnClickListener { finish() }
@@ -83,17 +83,27 @@ class ChooseRecipientsActivity : AppCompatActivity() {
                     email = snapshot.child("email").value as? String ?: "",
                     photoData = snapshot.child("photoData").value as? String ?: ""
                 )
-                allUsers.removeAll { it.uid == uid }
-                allUsers.add(user)
-                allUsers.sortBy { it.username.lowercase() }
-                applyFilter()
+                if (!allUsers.any { it.uid == uid }) {
+                    allUsers.add(user)
+                    allUsers.sortBy { it.username.lowercase() }
+                    adapter.setItems(allUsers)
+                }
             }
 
-            override fun onChildChanged(snapshot: DataSnapshot, previousChildName: String?) {}
+            override fun onChildChanged(snapshot: DataSnapshot, previousChildName: String?) {
+                val uid = snapshot.key ?: return
+                allUsers.forEach { if (it.uid == uid) {
+                    it.username = snapshot.child("username").value as? String ?: ""
+                    it.photoData = snapshot.child("photoData").value as? String ?: ""
+                }
+                }
+                adapter.notifyDataSetChanged()
+            }
+
             override fun onChildRemoved(snapshot: DataSnapshot) {
                 val uid = snapshot.key ?: return
                 allUsers.removeAll { it.uid == uid }
-                applyFilter()
+                adapter.setItems(allUsers)
             }
 
             override fun onChildMoved(snapshot: DataSnapshot, previousChildName: String?) {}
@@ -117,8 +127,6 @@ class ChooseRecipientsActivity : AppCompatActivity() {
     }
 
     private fun send() {
-        if (sending) return
-
         val selected = adapter.selectedUids()
         if (selected.isEmpty()) {
             Toast.makeText(this, "Select at least one friend", Toast.LENGTH_SHORT).show()
@@ -131,36 +139,15 @@ class ChooseRecipientsActivity : AppCompatActivity() {
             return
         }
 
+        val caption = intent.getStringExtra(EXTRA_CAPTION) ?: ""
+        val fromUid = FirebaseAuth.getInstance().currentUser!!.uid
+
         sending = true
         binding.sendProgress.visibility = View.VISIBLE
         binding.sendFab.visibility = View.GONE
 
-        if (myName.isEmpty()) {
-            val uid = FirebaseAuth.getInstance().currentUser?.uid
-            if (uid != null) {
-                FirebaseDatabase.getInstance().getReference("users").child(uid)
-                    .child("username").get()
-                    .addOnSuccessListener { snapshot ->
-                        myName = snapshot.value as? String ?: ""
-                        doSend(selected, path)
-                    }
-                    .addOnFailureListener { doSend(selected, path) }
-            }
-        } else {
-            doSend(selected, path)
-        }
-    }
-
-    private fun doSend(recipientUids: List<String>, path: String) {
-        val caption = intent.getStringExtra(EXTRA_CAPTION) ?: ""
-        val fromUid = FirebaseAuth.getInstance().currentUser!!.uid
-
         Thread {
-            val imageData = try {
-                ImageStore.encodeFile(File(path))
-            } catch (e: Exception) {
-                null
-            }
+            val imageData = try { ImageStore.encodeFile(File(path)) } catch (e: Exception) { null }
 
             runOnUiThread {
                 if (imageData == null) {
@@ -179,9 +166,14 @@ class ChooseRecipientsActivity : AppCompatActivity() {
                     "createdAt" to System.currentTimeMillis()
                 )
                 val db = FirebaseDatabase.getInstance().getReference("users")
-                for (uid in recipientUids) {
+                for (uid in selected) {
                     db.child(uid).child("snaps").push().setValue(snap)
+                        .addOnSuccessListener { /* snap sent to $uid */ }
+                        .addOnFailureListener { /* failed to send to $uid */ }
                 }
+                sending = false
+                binding.sendProgress.visibility = View.GONE
+                binding.sendFab.visibility = View.VISIBLE
                 Toast.makeText(this, "Snap sent!", Toast.LENGTH_SHORT).show()
                 setResult(Activity.RESULT_OK)
                 finish()

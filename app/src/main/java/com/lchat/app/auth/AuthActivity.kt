@@ -6,10 +6,10 @@ import android.view.View
 import android.view.inputmethod.InputMethodManager
 import androidx.appcompat.app.AppCompatActivity
 import com.google.firebase.auth.FirebaseAuth
-import com.google.firebase.database.FirebaseDatabase
 import com.lchat.app.MainActivity
-import com.lchat.app.R
 import com.lchat.app.databinding.ActivityAuthBinding
+import com.lchat.app.util.Db
+import com.lchat.app.util.E2E
 
 class AuthActivity : AppCompatActivity() {
 
@@ -36,7 +36,8 @@ class AuthActivity : AppCompatActivity() {
         binding.usernameLayout.visibility = if (signUpMode) View.VISIBLE else View.GONE
         binding.authButton.text = if (signUpMode) "Sign Up" else "Log In"
         binding.toggleAuth.text =
-            if (signUpMode) "Already have an account? Log in" else "Don't have an account? Sign up"
+            if (signUpMode) "Already have an account? Log in"
+            else "Don't have an account? Sign up"
         hideError()
     }
 
@@ -75,7 +76,8 @@ class AuthActivity : AppCompatActivity() {
         mAuth.signInWithEmailAndPassword(email, password)
             .addOnCompleteListener(this) { task ->
                 if (task.isSuccessful) {
-                    ensureProfile()
+                    val uid = mAuth.currentUser!!.uid
+                    ensureProfile(uid, email)
                 } else {
                     resetButton()
                     showError(task.exception?.localizedMessage ?: "Login failed. Try again.")
@@ -93,10 +95,12 @@ class AuthActivity : AppCompatActivity() {
                         "email" to email,
                         "createdAt" to System.currentTimeMillis()
                     )
-                    FirebaseDatabase.getInstance().getReference("users")
-                        .child(uid)
+                    Db.ref("users").child(uid)
                         .setValue(profile)
-                        .addOnCompleteListener { goMain() }
+                        .addOnCompleteListener {
+                            prepareKeys(uid)
+                            goMain()
+                        }
                 } else {
                     resetButton()
                     showError(task.exception?.localizedMessage ?: "Sign up failed. Try again.")
@@ -104,31 +108,35 @@ class AuthActivity : AppCompatActivity() {
             }
     }
 
-    private fun ensureProfile() {
-        val uid = mAuth.currentUser?.uid ?: run {
-            resetButton()
-            return
-        }
-        FirebaseDatabase.getInstance().getReference("users").child(uid).get()
+    private fun ensureProfile(uid: String, email: String) {
+        Db.ref("users").child(uid).get()
             .addOnSuccessListener { snapshot ->
-                if (!snapshot.exists()) {
-                    val email = mAuth.currentUser?.email ?: ""
+                if (snapshot.exists()) {
+                    prepareKeys(uid)
+                    goMain()
+                } else {
                     val profile = mapOf(
                         "username" to email.substringBefore("@"),
                         "email" to email,
                         "createdAt" to System.currentTimeMillis()
                     )
-                    FirebaseDatabase.getInstance().getReference("users")
-                        .child(uid)
+                    Db.ref("users").child(uid)
                         .setValue(profile)
-                        .addOnCompleteListener { goMain() }
-                } else {
-                    goMain()
+                        .addOnCompleteListener {
+                            prepareKeys(uid)
+                            goMain()
+                        }
                 }
             }
             .addOnFailureListener {
+                prepareKeys(uid)
                 goMain()
             }
+    }
+
+    private fun prepareKeys(uid: String) {
+        E2E.init(this)
+        E2E.ensureKeys(this, uid)
     }
 
     private fun goMain() {
@@ -153,14 +161,5 @@ class AuthActivity : AppCompatActivity() {
     private fun hideKeyboard() {
         val imm = getSystemService(INPUT_METHOD_SERVICE) as InputMethodManager
         imm.hideSoftInputFromWindow(binding.root.windowToken, 0)
-    }
-
-    @Suppress("DEPRECATION")
-    override fun onBackPressed() {
-        if (signUpMode) {
-            toggleMode()
-        } else {
-            super.onBackPressed()
-        }
     }
 }

@@ -1,5 +1,7 @@
 package com.lchat.app.ui
 
+import com.lchat.app.util.Db
+
 import android.content.Context
 import android.content.Intent
 import android.os.Bundle
@@ -85,7 +87,7 @@ class StoriesFragment : Fragment() {
     override fun onDestroyView() {
         super.onDestroyView()
         storiesListener?.let {
-            FirebaseDatabase.getInstance().getReference("stories").removeEventListener(it)
+            Db.ref("stories").removeEventListener(it)
         }
         storiesListener = null
         _binding = null
@@ -93,7 +95,7 @@ class StoriesFragment : Fragment() {
 
     private fun loadMyName() {
         val uid = FirebaseAuth.getInstance().currentUser?.uid ?: return
-        FirebaseDatabase.getInstance().getReference("users").child(uid).child("username").get()
+        Db.ref("users").child(uid).child("username").get()
             .addOnSuccessListener {
                 if (_binding == null) return@addOnSuccessListener
                 myName = it.value as? String ?: ""
@@ -113,7 +115,7 @@ class StoriesFragment : Fragment() {
     }
 
     private fun listenStories() {
-        val ref = FirebaseDatabase.getInstance().getReference("stories")
+        val ref = Db.ref("stories")
         val listener = object : ChildEventListener {
             override fun onChildAdded(snapshot: DataSnapshot, previousChildName: String?) {
                 addStory(snapshot)
@@ -155,7 +157,7 @@ class StoriesFragment : Fragment() {
     private fun cleanupExpiredOwnStories() {
         val myUid = FirebaseAuth.getInstance().currentUser?.uid ?: return
         val cutoff = System.currentTimeMillis() - 24L * 60 * 60 * 1000
-        val ref = FirebaseDatabase.getInstance().getReference("stories")
+        val ref = Db.ref("stories")
         for (story in stories.filter { it.fromUid == myUid && it.createdAt < cutoff }) {
             ref.child(story.id).removeValue()
         }

@@ -1,5 +1,8 @@
 package com.lchat.app.chat
 
+import com.lchat.app.util.Db
+import com.lchat.app.util.E2E
+
 import android.os.Bundle
 import android.view.View
 import android.view.inputmethod.InputMethodManager
@@ -14,6 +17,7 @@ import com.lchat.app.adapter.MessagesAdapter
 import com.lchat.app.databinding.ActivityChatBinding
 import com.lchat.app.model.ChatMessage
 import com.lchat.app.util.AppUtils
+import javax.crypto.SecretKey
 
 class ChatActivity : AppCompatActivity() {
 
@@ -26,6 +30,7 @@ class ChatActivity : AppCompatActivity() {
     private var otherName = ""
     private var myName = ""
     private var pairKey = ""
+    private var sharedKey: SecretKey? = null
     private var messagesListener: ChildEventListener? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -53,6 +58,15 @@ class ChatActivity : AppCompatActivity() {
         binding.backButton.setOnClickListener { finish() }
         binding.sendButton.setOnClickListener { sendMessage() }
 
+        E2E.init(this)
+        E2E.ensureKeys(this, myUid)
+        E2E.keyWithOther(otherUid) { key ->
+            runOnUiThread {
+                sharedKey = key
+                adapter.notifyDataSetChanged()
+            }
+        }
+
         loadMyName()
         markConversationRead()
         listenMessages()
@@ -61,7 +75,7 @@ class ChatActivity : AppCompatActivity() {
     override fun onDestroy() {
         super.onDestroy()
         messagesListener?.let {
-            FirebaseDatabase.getInstance().getReference("conversations")
+            Db.ref("conversations")
                 .child(pairKey)
                 .child("messages")
                 .removeEventListener(it)
@@ -69,12 +83,12 @@ class ChatActivity : AppCompatActivity() {
     }
 
     private fun loadMyName() {
-        FirebaseDatabase.getInstance().getReference("users").child(myUid).child("username").get()
+        Db.ref("users").child(myUid).child("username").get()
             .addOnSuccessListener { myName = it.value as? String ?: "" }
     }
 
     private fun markConversationRead() {
-        val ref = FirebaseDatabase.getInstance().getReference("users")
+        val ref = Db.ref("users")
             .child(myUid).child("conversations").child(otherUid)
         ref.get().addOnSuccessListener { snapshot ->
             if (snapshot.exists()) {
@@ -84,15 +98,17 @@ class ChatActivity : AppCompatActivity() {
     }
 
     private fun listenMessages() {
-        val ref = FirebaseDatabase.getInstance().getReference("conversations")
+        val ref = Db.ref("conversations")
             .child(pairKey)
             .child("messages")
 
         val listener = object : ChildEventListener {
             override fun onChildAdded(snapshot: DataSnapshot, previousChildName: String?) {
+                val raw = snapshot.child("text").value as? String ?: return
+                val decrypted = decryptText(raw)
                 val message = ChatMessage(
                     fromUid = snapshot.child("fromUid").value as? String ?: "",
-                    text = snapshot.child("text").value as? String ?: "",
+                    text = decrypted,
                     createdAt = snapshot.child("createdAt").getValue(Long::class.java) ?: 0L
                 )
                 if (message.text.isNotEmpty()) {
@@ -110,29 +126,34 @@ class ChatActivity : AppCompatActivity() {
         ref.addChildEventListener(listener)
     }
 
+    private fun decryptText(raw: String): String =
+        E2E.decrypt(raw, sharedKey) ?: "[Message illisible]"
+
     private fun sendMessage() {
         val text = binding.messageInput.text.toString().trim()
         if (text.isEmpty()) return
 
         val now = System.currentTimeMillis()
-        val message = ChatMessage(fromUid = myUid, text = text, createdAt = now)
+        val encryptedText = E2E.encrypt(text, sharedKey)
+        val message = ChatMessage(fromUid = myUid, text = encryptedText, createdAt = now)
 
-        FirebaseDatabase.getInstance().getReference("conversations")
+        Db.ref("conversations")
             .child(pairKey)
             .child("messages")
             .push()
             .setValue(message)
 
+        val preview = E2E.encrypt(text, sharedKey)
         if (myName.isEmpty()) {
-            FirebaseDatabase.getInstance().getReference("users").child(myUid)
+            Db.ref("users").child(myUid)
                 .child("username").get()
                 .addOnSuccessListener {
                     myName = it.value as? String ?: ""
-                    updateConversationMeta(text, now)
+                    updateConversationMeta(preview, now)
                 }
-                .addOnFailureListener { updateConversationMeta(text, now) }
+                .addOnFailureListener { updateConversationMeta(preview, now) }
         } else {
-            updateConversationMeta(text, now)
+            updateConversationMeta(preview, now)
         }
 
         binding.messageInput.text?.clear()
@@ -142,7 +163,7 @@ class ChatActivity : AppCompatActivity() {
     }
 
     private fun updateConversationMeta(lastMessage: String, timestamp: Long) {
-        val db = FirebaseDatabase.getInstance().getReference("users")
+        val db = Db.ref("users")
 
         db.child(myUid).child("conversations").child(otherUid).setValue(
             mapOf(

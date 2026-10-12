@@ -49,6 +49,9 @@
             android:exported="false"
             android:windowSoftInputMode="adjustResize" />
         <activity
+            android:name=".chat.NewChatActivity"
+            android:exported="false" />
+        <activity
             android:name=".story.ViewStoryActivity"
             android:exported="false"
             android:theme="@style/Theme.LChat.Dark" />

@@ -2,6 +2,7 @@
   "project_info": {
     "project_number": "665318943970",
     "project_id": "l-chat-a7c10",
+    "firebase_url": "https://l-chat-a7c10-default-rtdb.europe-west1.firebasedatabase.app",
     "storage_bucket": "l-chat-a7c10.firebasestorage.app"
   },
   "client": [

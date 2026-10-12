@@ -1,5 +1,7 @@
 package com.lchat.app.snap
 
+import com.lchat.app.util.Db
+
 import android.app.Activity
 import android.content.Intent
 import android.os.Bundle
@@ -74,7 +76,7 @@ class CreateSnapActivity : AppCompatActivity() {
                         "caption" to binding.captionInput.text.toString(),
                         "createdAt" to System.currentTimeMillis()
                     )
-                    FirebaseDatabase.getInstance().getReference("stories")
+                    Db.ref("stories")
                         .push()
                         .setValue(story)
                         .addOnSuccessListener {
@@ -89,7 +91,7 @@ class CreateSnapActivity : AppCompatActivity() {
 
     private fun myUsername(onResult: (String) -> Unit) {
         val uid = FirebaseAuth.getInstance().currentUser?.uid ?: return finish()
-        FirebaseDatabase.getInstance().getReference("users").child(uid).child("username").get()
+        Db.ref("users").child(uid).child("username").get()
             .addOnSuccessListener { snapshot ->
                 onResult(snapshot.value as? String ?: "Someone")
             }
