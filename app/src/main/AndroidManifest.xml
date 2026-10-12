@@ -52,6 +52,19 @@
             android:name=".chat.NewChatActivity"
             android:exported="false" />
         <activity
+            android:name=".call.CallActivity"
+            android:exported="false"
+            android:showWhenLocked="true" />
+        <activity
+            android:name=".group.CreateGroupActivity"
+            android:exported="false" />
+        <activity
+            android:name=".contacts.ContactsActivity"
+            android:exported="false" />
+        <activity
+            android:name=".group.GroupSettingsActivity"
+            android:exported="false" />
+        <activity
             android:name=".story.ViewStoryActivity"
             android:exported="false"
             android:theme="@style/Theme.LChat.Dark" />

@@ -39,6 +39,49 @@
                 android:textColor="@color/black"
                 android:textSize="20sp"
                 android:textStyle="bold" />
+
+            <TextView
+                android:id="@+id/selectionCount"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:textColor="@color/grayText"
+                android:textSize="13sp" />
+        </LinearLayout>
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:gravity="center_vertical"
+            android:orientation="horizontal"
+            android:paddingStart="20dp"
+            android:paddingEnd="20dp"
+            android:paddingTop="2dp"
+            android:paddingBottom="2dp">
+
+            <TextView
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:text="Contacts only"
+                android:textColor="@color/black"
+                android:textSize="14sp" />
+
+            <com.google.android.material.materialswitch.MaterialSwitch
+                android:id="@+id/contactsOnlySwitch"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:checked="true" />
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/addContactsButton"
+                style="@style/Widget.Material3.Button.TextButton"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="6dp"
+                android:minHeight="36dp"
+                android:text="Add contacts"
+                android:textAllCaps="false"
+                android:textSize="12sp" />
         </LinearLayout>
 
         <EditText
@@ -64,7 +107,7 @@
             android:layout_weight="1"
             android:gravity="center"
             android:padding="32dp"
-            android:text="No other users yet.&#10;Ask a friend to sign up on L Chat!"
+            android:text="No contacts yet."
             android:textAlignment="center"
             android:textColor="@color/grayText"
             android:textSize="15sp"
@@ -87,6 +130,7 @@
         android:layout_margin="20dp"
         android:contentDescription="Send"
         android:src="@drawable/ic_send"
+        android:visibility="gone"
         app:backgroundTint="@color/snapYellow"
         app:tint="@color/black" />
 

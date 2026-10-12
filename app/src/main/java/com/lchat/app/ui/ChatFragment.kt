@@ -19,7 +19,9 @@ import com.lchat.app.adapter.ChatRow
 import com.lchat.app.chat.ChatActivity
 import com.lchat.app.chat.NewChatActivity
 import com.lchat.app.databinding.FragmentChatBinding
+import com.lchat.app.group.CreateGroupActivity
 import com.lchat.app.model.Conversation
+import com.lchat.app.model.GroupItem
 import com.lchat.app.model.SnapItem
 import com.lchat.app.snap.ViewSnapActivity
 import com.lchat.app.util.E2E
@@ -31,6 +33,7 @@ class ChatFragment : Fragment() {
 
     private val snaps = LinkedHashMap<String, SnapItem>()
     private val conversations = LinkedHashMap<String, Conversation>()
+    private val groups = LinkedHashMap<String, GroupItem>()
     private val previewKeys = HashMap<String, javax.crypto.SecretKey>()
     private val listeners =
         ArrayList<Pair<com.google.firebase.database.DatabaseReference, ChildEventListener>>()
@@ -49,13 +52,17 @@ class ChatFragment : Fragment() {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         adapter = ChatListAdapter(
             onSnapClick = { snap -> openSnap(snap) },
-            onChatClick = { conversation -> openChat(conversation) }
+            onChatClick = { conversation -> openChat(conversation) },
+            onGroupClick = { group -> openGroup(group) }
         )
         binding.chatRecycler.layoutManager = LinearLayoutManager(requireContext())
         binding.chatRecycler.adapter = adapter
 
-        binding.newChatButton.setOnClickListener {
+        binding.newChatFab.setOnClickListener {
             startActivity(Intent(requireContext(), NewChatActivity::class.java))
+        }
+        binding.newGroupFab.setOnClickListener {
+            startActivity(Intent(requireContext(), CreateGroupActivity::class.java))
         }
 
         val myUid = FirebaseAuth.getInstance().currentUser?.uid ?: return
@@ -63,6 +70,51 @@ class ChatFragment : Fragment() {
 
         listenSnaps(root.child("snaps"))
         listenConversations(root.child("conversations"))
+        listenGroups(myUid)
+    }
+
+    private fun listenGroups(myUid: String) {
+        val ref = Db.ref("groups")
+        val listener = object : ChildEventListener {
+            override fun onChildAdded(snapshot: DataSnapshot, previousChildName: String?) {
+                if (snapshot.child("members").child(myUid).exists()) {
+                    groups[snapshot.key ?: return] = groupFrom(snapshot)
+                    refresh()
+                }
+            }
+
+            override fun onChildChanged(snapshot: DataSnapshot, previousChildName: String?) {
+                if (snapshot.child("members").child(myUid).exists()) {
+                    groups[snapshot.key ?: return] = groupFrom(snapshot)
+                    refresh()
+                }
+            }
+
+            override fun onChildRemoved(snapshot: DataSnapshot) {
+                groups.remove(snapshot.key)
+                refresh()
+            }
+
+            override fun onChildMoved(snapshot: DataSnapshot, previousChildName: String?) {}
+            override fun onCancelled(error: DatabaseError) {}
+        }
+        listeners.add(ref to listener)
+        ref.addChildEventListener(listener)
+    }
+
+    private fun groupFrom(snapshot: DataSnapshot) = GroupItem(
+        groupId = snapshot.key ?: "",
+        name = snapshot.child("name").value as? String ?: "",
+        owner = snapshot.child("owner").value as? String ?: "",
+        lastMessage = snapshot.child("lastMessage").value as? String ?: "",
+        lastMessageAt = snapshot.child("lastMessageAt").getValue(Long::class.java) ?: 0L
+    )
+
+    private fun openGroup(group: GroupItem) {
+        val intent = Intent(requireContext(), ChatActivity::class.java)
+        intent.putExtra("otherUid", "group_${group.groupId}")
+        intent.putExtra("otherName", group.name)
+        startActivity(intent)
     }
 
     override fun onDestroyView() {
@@ -179,11 +231,13 @@ class ChatFragment : Fragment() {
         val rows = ArrayList<ChatRow>()
         for (snap in snaps.values) rows.add(ChatRow.Snap(snap))
         for (conversation in conversations.values) rows.add(ChatRow.Chat(conversation))
+        for (group in groups.values) rows.add(ChatRow.Group(group))
 
         rows.sortByDescending {
             when (it) {
                 is ChatRow.Snap -> it.snap.createdAt
                 is ChatRow.Chat -> it.conversation.lastMessageAt
+                is ChatRow.Group -> it.group.lastMessageAt
             }
         }
 

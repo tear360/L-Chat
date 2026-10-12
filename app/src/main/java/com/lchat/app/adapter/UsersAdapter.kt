@@ -11,6 +11,7 @@ class UsersAdapter : RecyclerView.Adapter<UsersAdapter.VH>() {
 
     private val items = ArrayList<User>()
     val selected = LinkedHashSet<String>()
+    var onSelectionChanged: ((Int) -> Unit)? = null
 
     fun setItems(users: List<User>) {
         items.clear()
@@ -19,6 +20,18 @@ class UsersAdapter : RecyclerView.Adapter<UsersAdapter.VH>() {
     }
 
     fun selectedUids(): List<String> = selected.toList()
+
+    fun clearSelection() {
+        selected.clear()
+        notifyDataSetChanged()
+        onSelectionChanged?.invoke(0)
+    }
+
+    private fun toggle(user: User) {
+        if (selected.contains(user.uid)) selected.remove(user.uid) else selected.add(user.uid)
+        notifyDataSetChanged()
+        onSelectionChanged?.invoke(selected.size)
+    }
 
     override fun getItemCount(): Int = items.size
 
@@ -39,11 +52,9 @@ class UsersAdapter : RecyclerView.Adapter<UsersAdapter.VH>() {
             binding.userName.text = user.username
             binding.userEmail.text = user.email
             binding.userCheck.isChecked = selected.contains(user.uid)
+            binding.root.isActivated = binding.userCheck.isChecked
 
-            binding.root.setOnClickListener {
-                if (selected.contains(user.uid)) selected.remove(user.uid) else selected.add(user.uid)
-                binding.userCheck.isChecked = selected.contains(user.uid)
-            }
+            binding.root.setOnClickListener { toggle(user) }
         }
     }
 }

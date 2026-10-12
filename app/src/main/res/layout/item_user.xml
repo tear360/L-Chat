@@ -59,6 +59,8 @@
         android:id="@+id/userCheck"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:buttonTint="@color/black" />
+        android:buttonTint="@color/black"
+        android:clickable="false"
+        android:focusable="false" />
 
 </LinearLayout>

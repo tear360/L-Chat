@@ -56,6 +56,27 @@
             android:textColor="@color/black"
             android:textSize="17sp"
             android:textStyle="bold" />
+
+        <ImageButton
+            android:id="@+id/groupInfoButton"
+            android:layout_width="40dp"
+            android:layout_height="40dp"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            android:contentDescription="Group info"
+            android:padding="9dp"
+            android:src="@drawable/ic_settings"
+            android:tint="@color/onYellow"
+            android:visibility="gone" />
+
+        <ImageButton
+            android:id="@+id/callButton"
+            android:layout_width="40dp"
+            android:layout_height="40dp"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            android:contentDescription="Call"
+            android:padding="8dp"
+            android:src="@drawable/ic_phone"
+            android:tint="@color/onYellow" />
     </LinearLayout>
 
     <View

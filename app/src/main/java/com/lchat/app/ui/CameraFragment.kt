@@ -12,16 +12,23 @@ import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.core.content.ContextCompat
 import androidx.fragment.app.Fragment
+import androidx.camera.core.CameraControl
 import androidx.camera.core.CameraSelector
+import androidx.camera.core.FocusMeteringAction
 import androidx.camera.core.ImageCapture
 import androidx.camera.core.ImageCaptureException
+import androidx.camera.core.MeteringPointFactory
 import androidx.camera.core.Preview
+import androidx.camera.core.resolutionselector.AspectRatioStrategy
+import androidx.camera.core.resolutionselector.ResolutionSelector
+import androidx.camera.core.resolutionselector.ResolutionStrategy
 import androidx.camera.lifecycle.ProcessCameraProvider
 import androidx.core.view.isVisible
 import com.google.android.material.snackbar.Snackbar
 import com.lchat.app.databinding.FragmentCameraBinding
 import com.lchat.app.snap.CreateSnapActivity
 import java.io.File
+import java.util.concurrent.TimeUnit
 
 class CameraFragment : Fragment() {
 
@@ -30,8 +37,11 @@ class CameraFragment : Fragment() {
 
     private var cameraProvider: ProcessCameraProvider? = null
     private var imageCapture: ImageCapture? = null
+    private var camera: androidx.camera.core.Camera? = null
     private var lensFacing = CameraSelector.LENS_FACING_BACK
     private var bound = false
+    private var flashMode = ImageCapture.FLASH_MODE_OFF
+    private var lastPinchDistance = 0f
 
     private val requestCameraPermission =
         registerForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
@@ -69,7 +79,10 @@ class CameraFragment : Fragment() {
         binding.galleryButton.setOnClickListener { openGallery() }
         binding.openGalleryButton.setOnClickListener { openGallery() }
         binding.flipCameraButton.setOnClickListener { flipCamera() }
+        binding.flashButton.setOnClickListener { cycleFlash() }
         binding.grantCameraButton.setOnClickListener { requestCameraPermission.launch(Manifest.permission.CAMERA) }
+
+        setupZoomAndFocus()
 
         if (hasCameraPermission()) {
             binding.permissionView.isVisible = false
@@ -78,6 +91,56 @@ class CameraFragment : Fragment() {
             binding.permissionView.isVisible = true
             requestCameraPermission.launch(Manifest.permission.CAMERA)
         }
+    }
+
+    private fun setupZoomAndFocus() {
+        binding.previewView.setOnTouchListener { v, event ->
+            val camera = camera ?: return@setOnTouchListener false
+            val control = camera.cameraControl
+            when (event.actionMasked) {
+                android.view.MotionEvent.ACTION_DOWN -> {
+                    val point = binding.previewView.meteringPointFactory
+                        .createPoint(event.x, event.y)
+                    control.startFocusAndMetering(FocusMeteringAction.Builder(point).build())
+                }
+                android.view.MotionEvent.ACTION_MOVE -> {
+                    if (event.pointerCount >= 2) {
+                        val d = pinchDistance(event)
+                        val zoomState = camera.cameraInfo.zoomState.value
+                        if (zoomState != null && lastPinchDistance > 0f && d > 0f) {
+                            val newZoom = (zoomState.zoomRatio * (d / lastPinchDistance))
+                                .coerceIn(zoomState.minZoomRatio, zoomState.maxZoomRatio)
+                            control.setZoomRatio(newZoom)
+                        }
+                        lastPinchDistance = d
+                    }
+                }
+                android.view.MotionEvent.ACTION_UP,
+                android.view.MotionEvent.ACTION_CANCEL -> lastPinchDistance = 0f
+            }
+            true
+        }
+    }
+
+    private fun pinchDistance(event: android.view.MotionEvent): Float {
+        val dx = event.getX(0) - event.getX(1)
+        val dy = event.getY(0) - event.getY(1)
+        return Math.sqrt((dx * dx + dy * dy).toDouble()).toFloat()
+    }
+
+    private fun cycleFlash() {
+        flashMode = when (flashMode) {
+            ImageCapture.FLASH_MODE_OFF -> ImageCapture.FLASH_MODE_AUTO
+            ImageCapture.FLASH_MODE_AUTO -> ImageCapture.FLASH_MODE_ON
+            else -> ImageCapture.FLASH_MODE_OFF
+        }
+        imageCapture?.flashMode = flashMode
+        val label = when (flashMode) {
+            ImageCapture.FLASH_MODE_AUTO -> "Auto"
+            ImageCapture.FLASH_MODE_ON -> "On"
+            else -> "Off"
+        }
+        Snackbar.make(binding.root, "Flash: $label", Snackbar.LENGTH_SHORT).show()
     }
 
     override fun onResume() {
@@ -116,9 +179,15 @@ class CameraFragment : Fragment() {
                     it.setSurfaceProvider(binding.previewView.surfaceProvider)
                 }
 
-                val capture = ImageCapture.Builder()
-                    .setCaptureMode(ImageCapture.CAPTURE_MODE_MINIMIZE_LATENCY)
+                val resolutionSelector = ResolutionSelector.Builder()
+                    .setResolutionStrategy(ResolutionStrategy.HIGHEST_AVAILABLE_STRATEGY)
                     .build()
+
+                val capture = ImageCapture.Builder()
+                    .setCaptureMode(ImageCapture.CAPTURE_MODE_MAXIMIZE_QUALITY)
+                    .setResolutionSelector(resolutionSelector)
+                    .build()
+                capture.flashMode = flashMode
                 imageCapture = capture
 
                 val selector = CameraSelector.Builder()
@@ -126,7 +195,7 @@ class CameraFragment : Fragment() {
                     .build()
 
                 provider.unbindAll()
-                provider.bindToLifecycle(viewLifecycleOwner, selector, preview, capture)
+                camera = provider.bindToLifecycle(viewLifecycleOwner, selector, preview, capture)
                 bound = true
                 binding.permissionView.isVisible = false
             } catch (e: Exception) {

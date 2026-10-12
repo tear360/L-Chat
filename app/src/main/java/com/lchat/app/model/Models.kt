@@ -32,6 +32,15 @@ data class Conversation(
     var unread: Boolean = false
 ) : Serializable
 
+data class GroupItem(
+    var groupId: String = "",
+    var name: String = "",
+    var owner: String = "",
+    var lastMessage: String = "",
+    var lastMessageAt: Long = 0,
+    var unread: Boolean = false
+) : Serializable
+
 data class StoryItem(
     var id: String = "",
     var fromUid: String = "",

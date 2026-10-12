@@ -13,12 +13,15 @@ import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.database.ChildEventListener
 import com.google.firebase.database.DataSnapshot
 import com.google.firebase.database.DatabaseError
-import com.google.firebase.database.FirebaseDatabase
+import com.lchat.app.R
 import com.lchat.app.adapter.UsersAdapter
+import com.lchat.app.contacts.ContactsActivity
+import com.lchat.app.databinding.ActivityChooseRecipientsBinding
 import com.lchat.app.model.User
+import com.lchat.app.util.Db
 import com.lchat.app.util.ImageStore
+import com.lchat.app.util.Prefs
 import java.io.File
-import java.util.*
 
 class ChooseRecipientsActivity : AppCompatActivity() {
 
@@ -27,23 +30,39 @@ class ChooseRecipientsActivity : AppCompatActivity() {
         const val EXTRA_CAPTION = "caption"
     }
 
-    private lateinit var binding: com.lchat.app.databinding.ActivityChooseRecipientsBinding
+    private lateinit var binding: ActivityChooseRecipientsBinding
     private val adapter = UsersAdapter()
     private val allUsers = ArrayList<User>()
+    private val contactUids = HashSet<String>()
     private var myName = ""
     private var sending = false
+    private var contactsOnly = true
 
     private var usersListener: ChildEventListener? = null
+    private var contactsListener: ChildEventListener? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        binding = com.lchat.app.databinding.ActivityChooseRecipientsBinding.inflate(layoutInflater)
+        Prefs.applyTheme(this)
+        binding = ActivityChooseRecipientsBinding.inflate(layoutInflater)
         setContentView(binding.root)
 
         binding.backButton.setOnClickListener { finish() }
-
         binding.usersRecycler.layoutManager = LinearLayoutManager(this)
         binding.usersRecycler.adapter = adapter
+
+        adapter.onSelectionChanged = { count ->
+            binding.sendFab.visibility = if (count > 0) View.VISIBLE else View.GONE
+            binding.selectionCount.text = if (count > 0) "$count selected" else ""
+        }
+
+        binding.contactsOnlySwitch.setOnCheckedChangeListener { _, checked ->
+            contactsOnly = checked
+            applyFilter()
+        }
+        binding.addContactsButton.setOnClickListener {
+            startActivity(Intent(this, ContactsActivity::class.java))
+        }
 
         binding.searchInput.addTextChangedListener(object : TextWatcher {
             override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {}
@@ -53,59 +72,70 @@ class ChooseRecipientsActivity : AppCompatActivity() {
 
         binding.sendFab.setOnClickListener { send() }
 
-        loadMyName()
-        listenUsers()
+        val myUid = FirebaseAuth.getInstance().currentUser?.uid ?: run { finish(); return }
+        Db.ref("users").child(myUid).child("username").get()
+            .addOnSuccessListener { myName = it.value as? String ?: "" }
+
+        listenContacts(myUid)
+        listenUsers(myUid)
     }
 
     override fun onDestroy() {
         super.onDestroy()
-        usersListener?.let {
-            FirebaseDatabase.getInstance().getReference("users").removeEventListener(it)
+        usersListener?.let { Db.ref("users").removeEventListener(it) }
+        contactsListener?.let { myContactsRef().removeEventListener(it) }
+    }
+
+    private fun myContactsRef() = Db.ref("users")
+        .child(FirebaseAuth.getInstance().currentUser!!.uid)
+        .child("contacts")
+
+    private fun listenContacts(myUid: String) {
+        val ref = myContactsRef()
+        val listener = object : ChildEventListener {
+            override fun onChildAdded(snapshot: DataSnapshot, previousChildName: String?) {
+                contactUids.add(snapshot.key ?: return)
+                applyFilter()
+            }
+
+            override fun onChildChanged(snapshot: DataSnapshot, previousChildName: String?) {}
+            override fun onChildRemoved(snapshot: DataSnapshot) {
+                contactUids.remove(snapshot.key)
+                applyFilter()
+            }
+
+            override fun onChildMoved(snapshot: DataSnapshot, previousChildName: String?) {}
+            override fun onCancelled(error: DatabaseError) {}
         }
+        contactsListener = listener
+        ref.addChildEventListener(listener)
     }
 
-    private fun loadMyName() {
-        val uid = FirebaseAuth.getInstance().currentUser?.uid ?: return
-        FirebaseDatabase.getInstance().getReference("users").child(uid).child("username").get()
-            .addOnSuccessListener { myName = it.value as? String ?: "" }
-    }
-
-    private fun listenUsers() {
-        val myUid = FirebaseAuth.getInstance().currentUser?.uid ?: return
-        val ref = FirebaseDatabase.getInstance().getReference("users")
+    private fun listenUsers(myUid: String) {
+        val ref = Db.ref("users")
         val listener = object : ChildEventListener {
             override fun onChildAdded(snapshot: DataSnapshot, previousChildName: String?) {
                 val uid = snapshot.key ?: return
                 if (uid == myUid) return
-                val user = User(
+                allUsers.removeAll { it.uid == uid }
+                allUsers.add(User(
                     uid = uid,
                     username = snapshot.child("username").value as? String ?: "",
                     email = snapshot.child("email").value as? String ?: "",
                     photoData = snapshot.child("photoData").value as? String ?: ""
-                )
-                if (!allUsers.any { it.uid == uid }) {
-                    allUsers.add(user)
-                    allUsers.sortBy { it.username.lowercase() }
-                    adapter.setItems(allUsers)
-                }
+                ))
+                applyFilter()
             }
 
             override fun onChildChanged(snapshot: DataSnapshot, previousChildName: String?) {
                 val uid = snapshot.key ?: return
-                allUsers.forEach { if (it.uid == uid) {
-                    it.username = snapshot.child("username").value as? String ?: ""
-                    it.photoData = snapshot.child("photoData").value as? String ?: ""
+                allUsers.indexOfFirst { it.uid == uid }.takeIf { it >= 0 }?.let { index ->
+                    allUsers[index].username = snapshot.child("username").value as? String ?: ""
                 }
-                }
-                adapter.notifyDataSetChanged()
+                applyFilter()
             }
 
-            override fun onChildRemoved(snapshot: DataSnapshot) {
-                val uid = snapshot.key ?: return
-                allUsers.removeAll { it.uid == uid }
-                adapter.setItems(allUsers)
-            }
-
+            override fun onChildRemoved(snapshot: DataSnapshot) {}
             override fun onChildMoved(snapshot: DataSnapshot, previousChildName: String?) {}
             override fun onCancelled(error: DatabaseError) {}
         }
@@ -115,21 +145,33 @@ class ChooseRecipientsActivity : AppCompatActivity() {
 
     private fun applyFilter() {
         val query = binding.searchInput.text.toString().trim().lowercase()
+        val base = if (contactsOnly) allUsers.filter { contactUids.contains(it.uid) } else allUsers
         val filtered = if (query.isEmpty()) {
-            allUsers
+            base.sortedBy { it.username.lowercase() }
         } else {
-            allUsers.filter {
+            base.filter {
                 it.username.lowercase().contains(query) || it.email.lowercase().contains(query)
             }
         }
         adapter.setItems(filtered)
-        binding.emptyView.visibility = if (filtered.isEmpty() && allUsers.isEmpty()) View.VISIBLE else View.GONE
+
+        val nothingToShow = filtered.isEmpty()
+        binding.emptyView.visibility = if (nothingToShow) View.VISIBLE else View.GONE
+        binding.emptyView.text = when {
+            allUsers.isEmpty() -> "No other users yet.\nAsk a friend to sign up on L Chat!"
+            contactsOnly && contactUids.isEmpty() ->
+                "You have no contacts yet.\nTap \"Add contacts\" below to add some."
+            query.isNotEmpty() -> "Nobody matches \"$query\"."
+            else -> "No contacts to show. Turn off \"Contacts only\" to see everyone."
+        }
     }
 
     private fun send() {
+        if (sending) return
+
         val selected = adapter.selectedUids()
         if (selected.isEmpty()) {
-            Toast.makeText(this, "Select at least one friend", Toast.LENGTH_SHORT).show()
+            Toast.makeText(this, "Select at least one contact first", Toast.LENGTH_SHORT).show()
             return
         }
 
@@ -139,21 +181,24 @@ class ChooseRecipientsActivity : AppCompatActivity() {
             return
         }
 
-        val caption = intent.getStringExtra(EXTRA_CAPTION) ?: ""
-        val fromUid = FirebaseAuth.getInstance().currentUser!!.uid
-
         sending = true
         binding.sendProgress.visibility = View.VISIBLE
         binding.sendFab.visibility = View.GONE
 
+        val caption = intent.getStringExtra(EXTRA_CAPTION) ?: ""
+        val fromUid = FirebaseAuth.getInstance().currentUser!!.uid
+
         Thread {
-            val imageData = try { ImageStore.encodeFile(File(path)) } catch (e: Exception) { null }
+            val imageData = try {
+                ImageStore.encodeFile(File(path))
+            } catch (e: Exception) {
+                null
+            }
 
             runOnUiThread {
                 if (imageData == null) {
                     sending = false
                     binding.sendProgress.visibility = View.GONE
-                    binding.sendFab.visibility = View.VISIBLE
                     Toast.makeText(this, "Could not process the image", Toast.LENGTH_SHORT).show()
                     return@runOnUiThread
                 }
@@ -165,16 +210,11 @@ class ChooseRecipientsActivity : AppCompatActivity() {
                     "caption" to caption,
                     "createdAt" to System.currentTimeMillis()
                 )
-                val db = FirebaseDatabase.getInstance().getReference("users")
+                val db = Db.ref("users")
                 for (uid in selected) {
                     db.child(uid).child("snaps").push().setValue(snap)
-                        .addOnSuccessListener { /* snap sent to $uid */ }
-                        .addOnFailureListener { /* failed to send to $uid */ }
                 }
-                sending = false
-                binding.sendProgress.visibility = View.GONE
-                binding.sendFab.visibility = View.VISIBLE
-                Toast.makeText(this, "Snap sent!", Toast.LENGTH_SHORT).show()
+                Toast.makeText(this, "Snap sent to $selected!", Toast.LENGTH_SHORT).show()
                 setResult(Activity.RESULT_OK)
                 finish()
             }

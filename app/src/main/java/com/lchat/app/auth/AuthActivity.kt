@@ -10,6 +10,7 @@ import com.lchat.app.MainActivity
 import com.lchat.app.databinding.ActivityAuthBinding
 import com.lchat.app.util.Db
 import com.lchat.app.util.E2E
+import com.lchat.app.util.Prefs
 
 class AuthActivity : AppCompatActivity() {
 
@@ -19,12 +20,20 @@ class AuthActivity : AppCompatActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        Prefs.applyTheme(this)
         binding = ActivityAuthBinding.inflate(layoutInflater)
         setContentView(binding.root)
 
-        if (mAuth.currentUser != null) {
+        val addAccountMode = intent.getBooleanExtra("addAccount", false)
+        if (mAuth.currentUser != null && !addAccountMode) {
             goMain()
             return
+        }
+
+        // Pré-remplir le dernier compte utilisé pour faciliter la connexion
+        Prefs.lastEmail(this)?.let {
+            binding.emailInput.setText(it)
+            Prefs.lastPassword(this)?.let { p -> binding.passwordInput.setText(p) }
         }
 
         binding.toggleAuth.setOnClickListener { toggleMode() }
@@ -76,6 +85,7 @@ class AuthActivity : AppCompatActivity() {
         mAuth.signInWithEmailAndPassword(email, password)
             .addOnCompleteListener(this) { task ->
                 if (task.isSuccessful) {
+                    Prefs.saveAccount(this, email, password)
                     val uid = mAuth.currentUser!!.uid
                     ensureProfile(uid, email)
                 } else {

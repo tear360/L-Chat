@@ -3,6 +3,7 @@ package com.lchat.app.chat
 import com.lchat.app.util.Db
 import com.lchat.app.util.E2E
 
+import android.content.Intent
 import android.os.Bundle
 import android.view.View
 import android.view.inputmethod.InputMethodManager
@@ -14,7 +15,9 @@ import com.google.firebase.database.DataSnapshot
 import com.google.firebase.database.DatabaseError
 import com.google.firebase.database.FirebaseDatabase
 import com.lchat.app.adapter.MessagesAdapter
+import com.lchat.app.call.CallActivity
 import com.lchat.app.databinding.ActivityChatBinding
+import com.lchat.app.group.GroupSettingsActivity
 import com.lchat.app.model.ChatMessage
 import com.lchat.app.util.AppUtils
 import javax.crypto.SecretKey
@@ -30,8 +33,11 @@ class ChatActivity : AppCompatActivity() {
     private var otherName = ""
     private var myName = ""
     private var pairKey = ""
+    private var isGroup = false
     private var sharedKey: SecretKey? = null
     private var messagesListener: ChildEventListener? = null
+    private var callInProgress = false
+    private val incomingCallListeners = ArrayList<Pair<com.google.firebase.database.DatabaseReference, ChildEventListener>>()
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -41,7 +47,21 @@ class ChatActivity : AppCompatActivity() {
         myUid = mAuth.currentUser?.uid ?: run { finish(); return }
         otherUid = intent.getStringExtra("otherUid") ?: run { finish(); return }
         otherName = intent.getStringExtra("otherName") ?: ""
-        pairKey = AppUtils.pairKey(myUid, otherUid)
+
+        val isGroupMode = otherUid.startsWith("group_")
+        isGroup = isGroupMode
+        pairKey = if (isGroupMode) otherUid else AppUtils.pairKey(myUid, otherUid)
+
+        binding.callButton.visibility = if (isGroupMode) View.GONE else View.VISIBLE
+        binding.groupInfoButton.visibility = if (isGroupMode) View.VISIBLE else View.GONE
+        if (isGroupMode) {
+            val groupId = otherUid.removePrefix("group_")
+            binding.groupInfoButton.setOnClickListener {
+                val intent = Intent(this, GroupSettingsActivity::class.java)
+                intent.putExtra("groupId", groupId)
+                startActivity(intent)
+            }
+        }
 
         binding.chatTitle.text = otherName
         val color = AppUtils.avatarColor(otherUid)
@@ -57,6 +77,7 @@ class ChatActivity : AppCompatActivity() {
 
         binding.backButton.setOnClickListener { finish() }
         binding.sendButton.setOnClickListener { sendMessage() }
+        binding.callButton.setOnClickListener { startCall() }
 
         E2E.init(this)
         E2E.ensureKeys(this, myUid)
@@ -70,6 +91,41 @@ class ChatActivity : AppCompatActivity() {
         loadMyName()
         markConversationRead()
         listenMessages()
+        if (!isGroup) listenIncomingCall()
+    }
+
+    private fun startCall() {
+        val intent = Intent(this, CallActivity::class.java)
+        intent.putExtra("otherUid", otherUid)
+        intent.putExtra("otherName", otherName)
+        intent.putExtra("isCaller", true)
+        startActivity(intent)
+    }
+
+    private fun listenIncomingCall() {
+        val callKey = AppUtils.pairKey(myUid, otherUid)
+        val ref = Db.ref("calls").child(callKey)
+        val listener = object : ChildEventListener {
+            override fun onChildAdded(snapshot: DataSnapshot, previousChildName: String?) {
+                val state = snapshot.child("state").value as? String ?: return
+                val fromUid = snapshot.child("fromUid").value as? String ?: return
+                if (state == "ringing" && fromUid == otherUid && !callInProgress) {
+                    callInProgress = true
+                    val intent = Intent(this@ChatActivity, CallActivity::class.java)
+                    intent.putExtra("otherUid", fromUid)
+                    intent.putExtra("otherName", otherName)
+                    intent.putExtra("isCaller", false)
+                    startActivity(intent)
+                }
+            }
+
+            override fun onChildChanged(snapshot: DataSnapshot, previousChildName: String?) {}
+            override fun onChildRemoved(snapshot: DataSnapshot) { callInProgress = false }
+            override fun onChildMoved(snapshot: DataSnapshot, previousChildName: String?) {}
+            override fun onCancelled(error: DatabaseError) {}
+        }
+        ref.addChildEventListener(listener)
+        incomingCallListeners.add(ref to listener)
     }
 
     override fun onDestroy() {
@@ -80,6 +136,10 @@ class ChatActivity : AppCompatActivity() {
                 .child("messages")
                 .removeEventListener(it)
         }
+        for ((ref, listener) in incomingCallListeners) {
+            ref.removeEventListener(listener)
+        }
+        incomingCallListeners.clear()
     }
 
     private fun loadMyName() {
@@ -126,16 +186,18 @@ class ChatActivity : AppCompatActivity() {
         ref.addChildEventListener(listener)
     }
 
-    private fun decryptText(raw: String): String =
-        E2E.decrypt(raw, sharedKey) ?: "[Message illisible]"
+    private fun decryptText(raw: String): String {
+        if (isGroup) return raw.removePrefix("plain:")
+        return E2E.decrypt(raw, sharedKey) ?: "[Message illisible]"
+    }
 
     private fun sendMessage() {
         val text = binding.messageInput.text.toString().trim()
         if (text.isEmpty()) return
 
         val now = System.currentTimeMillis()
-        val encryptedText = E2E.encrypt(text, sharedKey)
-        val message = ChatMessage(fromUid = myUid, text = encryptedText, createdAt = now)
+        val storedText = if (isGroup) "plain:$text" else E2E.encrypt(text, sharedKey)
+        val message = ChatMessage(fromUid = myUid, text = storedText, createdAt = now)
 
         Db.ref("conversations")
             .child(pairKey)
@@ -143,7 +205,7 @@ class ChatActivity : AppCompatActivity() {
             .push()
             .setValue(message)
 
-        val preview = E2E.encrypt(text, sharedKey)
+        val preview = storedText
         if (myName.isEmpty()) {
             Db.ref("users").child(myUid)
                 .child("username").get()

@@ -12,6 +12,7 @@ import com.lchat.app.ui.ChatFragment
 import com.lchat.app.ui.ProfileFragment
 import com.lchat.app.ui.StoriesFragment
 import com.lchat.app.util.E2E
+import com.lchat.app.util.Prefs
 
 class MainActivity : AppCompatActivity() {
 
@@ -19,6 +20,8 @@ class MainActivity : AppCompatActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+
+        Prefs.applyTheme(this)
 
         val currentUser = FirebaseAuth.getInstance().currentUser
         if (currentUser == null) {
